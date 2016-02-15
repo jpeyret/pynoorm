@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -10,7 +9,7 @@ Tests for `pynoorm` module.
 
 import unittest
 
-from pynoorm import pynoorm
+from pynoorm.binder import Binder
 
 
 class TestPynoorm(unittest.TestCase):
