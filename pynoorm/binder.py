@@ -81,7 +81,8 @@ See https://www.python.org/dev/peps/pep-0249/#paramstyle for details""" % \
 
 
 class Binder_pyformat(Binder):
-    """query template and substitution management for postgresql 
+    """support Postgresql
+       query template and substitution management for postgresql 
        query is unchanged because postgresql is happy with %(somevar)s as a  bind
     """
 
@@ -109,37 +110,47 @@ class Binder_pyformat(Binder):
     __call__ = format
 
 
-    def __getitem__(self, keyname):
-        if keyname in self.sub:
+    def __getitem__(self, key):
+        if key in self.sub:
             return None
 
         for arg in self.li_arg:
             try:
 
-                got = arg[keyname]
-                self.sub[keyname] = got
+                got = arg[key]
+                self.sub[key] = got
                 
                 #"select * from foo where bar = %(somebar)s" => "select * from foo where bar = %(somebar)s"
                 #so we're keeping the tqry at the end and the results of __getitem__ don't matter to the qry
                 return None
             except (KeyError):
-                continue
+                #we have __getitem__, just no key
+
+                try:
+                    #try getattr
+                    got = getattr(arg, key)
+                    self.sub[key] = got                
+                    return None
+                except AttributeError:
+                    continue
+
             except (AttributeError, TypeError):
                 try:
-                    got = getattr(arg, keyname)
-                    self.sub[keyname] = got
+                    got = getattr(arg, key)
+                    self.sub[key] = got
                     return None
                 except AttributeError:
                     continue
 
         try:
-            raise KeyError(keyname)
+            raise KeyError(key)
         except Exception, e:
             raise
 
 
 class Binder_qmark(Binder):
-    """query template and substitution management for sqlite3
+    """supports:  sqlite3
+       query template and substitution management for sqlite3
        query changes from %(somevar)s to ?
 
 
@@ -157,45 +168,46 @@ class Binder_qmark(Binder):
 
         self.sub = []
         self.li_arg = list(args)
-        self.qry = tqry % (self)
-        return self.qry, tuple(self.sub)
+        qry = tqry % (self)
+        return qry, tuple(self.sub)
 
 
-    def __getitem__(self, keyname):
+    def __getitem__(self, key):
         """
         finds a substitution and append it to the bind list
         but also transforms the variable in the query to ?
         """
 
+        qry_replace = "?"
+
         for arg in self.li_arg:
             try:
 
-                got = arg[keyname]
+                got = arg[key]
                 self.sub.append(got)
                 
-                #replace the query's %(foo)s with ?
-                return "?"
+                return qry_replace
             except (KeyError):
-                # continue
+                #OK, we have __getitem__, just doesn't have key
 
                 try:
-                    got = getattr(arg, keyname)
+                    #try getattr
+                    got = getattr(arg, key)
                     self.sub.append(got)
-                    return "?"
+                    return qry_replace
                 except AttributeError:
                     continue
 
-
             except (AttributeError, TypeError):
+                #no getitem, try getattr
                 try:
-                    got = getattr(arg, keyname)
+                    got = getattr(arg, key)
                     self.sub.append(got)
-
-                    return "?"
+                    return qry_replace
                 except AttributeError:
                     continue
         else:
-            raise KeyError(keyname)
+            raise KeyError(key)
 
 
 
@@ -219,13 +231,12 @@ class Binder_named(Binder):
 
         self.sub = {}
         self.li_arg = list(args)
-        self.qry = tqry % (self)
-        return self.qry, self.sub
+        qry = tqry % (self)
+        return qry, self.sub
 
     __call__ = format
 
-
-    def __getitem__(self, keyname):
+    def __getitem__(self, key):
         """
         finds a substitution
         but also transforms the variable in the query to Oracle named 
@@ -236,30 +247,40 @@ class Binder_named(Binder):
 
         #already seen 
         #replace the query's %(foo)s with :foo
-        if keyname in self.sub:
-            return t_qry_replace % (keyname)
+        if key in self.sub:
+            return t_qry_replace % (key)
 
         for arg in self.li_arg:
             try:
 
-                got = arg[keyname]
-                self.sub[keyname] = got
+                got = arg[key]
+                self.sub[key] = got
                 
                 #replace the query's %(foo)s with :foo
-                return t_qry_replace % (keyname)
+                return t_qry_replace % (key)
             except (KeyError):
-                continue
-            except (AttributeError, TypeError):
-                try:
-                    got = getattr(arg, keyname)
-                    self.sub[keyname] = got
+                #we have __getitem__, just no key
 
-                    return t_qry_replace % (keyname)
+                try:
+                    #try getattr
+                    got = getattr(arg, key)
+                    self.sub[key] = got                
+                    return t_qry_replace % (key)
+                except AttributeError:
+                    continue
+
+            except (AttributeError, TypeError):
+                #no __getitem__, try getattr
+                try:
+                    got = getattr(arg, key)
+                    self.sub[key] = got
+
+                    return t_qry_replace % (key)
                 except AttributeError:
                     continue
 
         try:
-            raise KeyError(keyname)
+            raise KeyError(key)
         except Exception, e:
             raise
 

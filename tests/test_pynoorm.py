@@ -55,8 +55,6 @@ class BasicArgument(object):
 
 class TestBinder(object):
 
-    table_created = False
-
 
     def __repr__(self):
         return self.__class__.__name__
@@ -64,13 +62,6 @@ class TestBinder(object):
 
     li_custid = ["ACME","AMAZON"]
     num_orders = 5
-
-    qry_drop = """DROP TABLE orders;"""
-
-
-    qry_create = """CREATE TABLE orders
-                 (custid TEXT, ordernum INTEGER, sku text, qty INTEGER)"""
-
 
     tqry_ins = """insert into orders(custid, ordernum, sku, qty) 
                              values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
@@ -235,7 +226,8 @@ class TestBinder(object):
             self.assertEqual(row["ordernum"], ordernum)
 
     def test_003_repeated(self):
-        """supports repeated use of the same bind parameter"""
+        """...supports repeated use of the same bind parameter"""
+        testname = "test_003_repeated"
 
         custid = self.li_custid[1]
         ordernum = 7
@@ -252,7 +244,6 @@ class TestBinder(object):
                 )
         )
 
-
         if self.type_sub == tuple:
             exp = (custid, ordernum, ordernum, 0)
             self.assertEqual(exp, sub)
@@ -261,12 +252,10 @@ class TestBinder(object):
             exp = dict(custid=custid, ordernum=ordernum, qty=0)
             self.assertEqual(exp, sub)
 
-
         self.check_query(tqry_ins, qry)
 
-
         if not self.cursor:
-            logger.info("%s.test_003_repeated.return - no cursor")
+            logger.info("%s.%s.return - no cursor" % (self, testname))
             return
 
         self.cursor.execute(qry, sub)
@@ -287,11 +276,77 @@ class TestBinder(object):
         self.assertNotEqual(data["ordernum"], data["sku"])
         self.assertEqual(data["ordernum"], int(data["sku"]))
 
+    def test_004_item_then_attr(self):
+        """...first try arg[key] then getattr(arg, key)
+        for each argument:
+            1. try argument[<keyname>]
+            2. try getattr(argument, <keyname>)
+            3. if not found, advance to next argument
+            4. when argument list is done, throw a KeyError(<keyname>)
+        """
+
+        testname = "test_004_item_then_attr"
+
+        custid = self.li_custid[1]
+        ordernum = 8
+
+        tqry_ins = """insert into orders(custid, ordernum, sku, qty)
+        values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
+
+        default = dict(qty=0)
+
+
+        #set up an argument with sku both as an item and an attribute
+        item_sku = "item_sku"
+        attr_sku = "attr_sku"
+
+        test = AttrDict()
+        test.data["sku"] = item_sku
+        test.sku = attr_sku
+        test.custid = custid
+        test.ordernum = ordernum
+
+        qry, sub = self.binder.format(tqry_ins,
+            test,
+            default,
+        )
+
+        if self.type_sub == tuple:
+            exp = (custid, ordernum, item_sku, 0)
+            self.assertEqual(exp, sub)
+
+        elif self.type_sub == dict:
+            exp = dict(custid=custid, ordernum=ordernum, sku=item_sku, qty=0)
+            self.assertEqual(exp, sub)
+
+        self.check_query(tqry_ins, qry)
+
+        if not self.cursor:
+            logger.info("%s.%s.return - no cursor" % (self, testname))
+            return
+
+        self.cursor.execute(qry, sub)
+
+
+        test_crit = BasicArgument()
+        test_crit.custid = custid
+        test_crit.ordernum = ordernum
+
+        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit) 
+
+        self.cursor.execute(qry, sub)
+
+        res = self.cursor.fetchone()
+
+        data = parse_res(self.cursor, [res])[0]
+
+        #column type should be respected
+        self.assertEqual(data["sku"], item_sku)
+
 
 
     def test_005_missingbind(self):
-        """...if a given bind parameter is not found in the entire
-           argument list, throw a KeyError
+        """...if a bind parameter is found nowhere, throws KeyError
         """
 
         custid = self.li_custid[1]
@@ -338,22 +393,26 @@ class TestBinder(object):
         self.assertEqual(qry, tqry_safe)
 
     def test_008_beware_of_sqlinjection(self):
-        """...you can still shoot yourself in the foot!"""
+        """...if you aim carefully, you can still shoot yourself in the foot!"""
 
         tqry_unsafe = """select * from orders where custid = '%(custid)s' """
 
         custid = "x' or 'a' = 'a"
 
+        #we are not using binds here, just a dumb direct substitution
         qry_unsafe = tqry_unsafe % locals()
 
         qry, sub = self.binder.format(qry_unsafe, self, locals(), globals())
 
         self.assertTrue("""or 'a' = 'a'""" in qry)
-        logger.warning(qry)
+        logger.info(qry)
 
 
 
 class LiveTest(object):
+
+    def __repr__(self):
+        return self.__class__.__name__
 
     @classmethod
     def tearDownClass(cls):
@@ -373,7 +432,6 @@ class LiveTest(object):
             cls.cursor.execute(cls.qry_create)
         except Exception, e:
             logger.error("%s table creation exception %s.  cursor:%s" % (cls, e, cls.cursor))
-
             raise
 
         cls.binder = Binder.factory(paramstyle=cls.paramstyle)
@@ -412,68 +470,13 @@ class LiveTest(object):
         self.assertEqual(ordernum, data.get("ordernum"))
 
 
-
-
-    def test_004_item_then_attr(self):
-        """
-        for each argument:
-            1. try argument[<keyname>]
-            2. try getattr(<keyname>)
-            3. if not found, advance to next argument
-            4. when argument list is done, throw a KeyError(<keyname>)
-        """
-
-        custid = self.li_custid[1]
-        ordernum = 8
-
-        if not self.conn:
-            # unittest.skip("no connection")
-            raise unittest.SkipTest("%s.no connection" % (self))
-
-
-        tqry_ins = """insert into orders(custid, ordernum, sku, qty)
-        values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
-
-        default = dict(qty=0)
-
-
-        #set up an argument with sku both as an item and an attribute
-        item_sku = "item_sku"
-        attr_sku = "attr_sku"
-
-        test = AttrDict()
-        test.data["sku"] = item_sku
-        test.sku = attr_sku
-        test.custid = custid
-        test.ordernum = ordernum
-
-        qry, sub = self.binder.format(tqry_ins,
-            test,
-            default,
-        )
-
-        self.assertEqual((custid, ordernum, item_sku, 0), sub)
-
-        self.cursor.execute(qry, sub)
-
-
-        test_crit = BasicArgument()
-        test_crit.custid = custid
-        test_crit.ordernum = ordernum
-
-        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit) 
-
-        self.cursor.execute(qry, sub)
-
-        res = self.cursor.fetchone()
-
-        data = parse_res(self.cursor, [res])[0]
-
-        #column type should be respected
-        self.assertEqual(data["sku"], item_sku)
-
-
 class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
+
+
+    qry_drop = """DROP TABLE orders;"""
+
+    qry_create = """CREATE TABLE orders
+                 (custid TEXT, ordernum INTEGER, sku text, qty INTEGER)"""
 
     paramstyle = sqlite3.paramstyle
 
@@ -493,7 +496,7 @@ class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
 
 class DryRunTest_Oracle(TestBinder, unittest.TestCase):
     """test Oracle handling"""
-
+               
     paramstyle = "named"
 
     type_sub = dict
