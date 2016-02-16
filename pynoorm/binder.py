@@ -171,6 +171,7 @@ class Binder_qmark(Binder):
         qry = tqry % (self)
         return qry, tuple(self.sub)
 
+    __call__ = format
 
     def __getitem__(self, key):
         """

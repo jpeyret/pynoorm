@@ -11,9 +11,7 @@ import unittest
 
 from pynoorm.binder import Binder
 
-import sqlite3
 
-binder = conn = cursor = None
 
 import pdb
 
@@ -52,7 +50,6 @@ class BasicArgument(object):
     pass
 
 
-
 class TestBinder(object):
 
 
@@ -75,10 +72,18 @@ class TestBinder(object):
                                 where custid = %(custid)s 
                                 and ordernum = %(ordernum)s"""
 
+    tqry_max_order = """select *
+              from orders
+              where custid = %(custid)s
+              and ordernum = (select max(s.ordernum) from orders s where custid = orders.custid)"""
+
+
     conn = cursor = binder = None
 
     defaults = BasicArgument()
     defaults.qty = 0
+    defaults.sku = "not provided"
+    defaults.ordernum = -1
 
     type_sub = None
 
@@ -389,8 +394,12 @@ class TestBinder(object):
         tqry_safe = """select * from orders where qty = 0 """
 
         qry, sub = self.binder.format(tqry_safe, self, locals(), globals())
-
         self.assertEqual(qry, tqry_safe)
+
+        #and you can also not pass in any arguments
+        qry, sub = self.binder.format(tqry_safe)
+        self.assertEqual(qry, tqry_safe)
+
 
     def test_008_beware_of_sqlinjection(self):
         """...if you aim carefully, you can still shoot yourself in the foot!"""
@@ -406,7 +415,6 @@ class TestBinder(object):
 
         self.assertTrue("""or 'a' = 'a'""" in qry)
         logger.info(qry)
-
 
 
 class LiveTest(object):
@@ -470,46 +478,117 @@ class LiveTest(object):
         self.assertEqual(ordernum, data.get("ordernum"))
 
 
-class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
+    def test_009_bind_from_rows(self):
+        """
+        bind from rows 
+        bind against property
 
+        """
+
+        testname = "test_009_bind_from_rows"
+        self.custid = self.li_custid[1]
+
+
+        class PropertyIncrementer(object):
+            def __init__(self, ordernum):
+                assert isinstance(ordernum, int)
+                self._ordernum = ordernum
+
+            def ordernum():
+                doc = "The ordernum property."
+                def fget(self):
+                    # raise NotImplementedError()
+                    self._ordernum += 1
+                    return self._ordernum
+                return locals()
+            ordernum = property(**ordernum())
+
+        def fetchmax():
+            #making use of the Binder.__call__ shortcut
+            qry_max, sub_max = self.binder(self.tqry_max_order, self)
+
+            self.cursor.execute(qry_max, sub_max)
+            res = self.cursor.fetchone()
+
+            row = parse_res(self.cursor, [res])[0]
+            return row
+
+        row = fetchmax()
+
+        old_ordernum = row["ordernum"]
+        incrementer = PropertyIncrementer(old_ordernum)
+
+
+        before = {}
+        before.update(row)
+        del before["ordernum"]
+
+        qry_ins, sub = self.binder(self.tqry_ins, incrementer, row)
+
+        if self.type_sub == tuple:
+            exp = (row["custid"], old_ordernum+1, row["sku"], row["qty"])
+            self.assertEqual(exp, sub)
+
+        elif self.type_sub == dict:
+            exp = dict(custid=row["custid"], ordernum=old_ordernum+1, sku=row["sku"], qty=row["qty"])
+            self.assertEqual(exp, sub)
+
+        #insert the new row, fetch it
+        self.cursor.execute(qry_ins, sub)
+        row2 = fetchmax()
+
+        new_ordernum = row2["ordernum"]
+
+        after = {}
+        after.update(row2)
+        del after["ordernum"]
+
+        #expecting all data copied except for ordernum incrementation
+        self.assertEqual(before, after)
+        self.assertEqual(old_ordernum+1, new_ordernum)
+
+
+class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
+    """test sqlite3"""
 
     qry_drop = """DROP TABLE orders;"""
 
     qry_create = """CREATE TABLE orders
                  (custid TEXT, ordernum INTEGER, sku text, qty INTEGER)"""
 
-    paramstyle = sqlite3.paramstyle
-
     type_sub = tuple
 
     @classmethod
     def setUpClass(cls):
 
+        try:
+            import sqlite3
+        except ImportError:
+            return
+
+        cls.paramstyle = sqlite3.paramstyle
+
         cls.conn = sqlite3.connect(":memory")
         cls.cursor = cls.conn.cursor()
 
-        # pdb.set_trace()
         LiveTest.setup_class(cls)
-
         cls.OperationalError = sqlite3.OperationalError
 
 
 class DryRunTest_Oracle(TestBinder, unittest.TestCase):
-    """test Oracle handling"""
-               
-    paramstyle = "named"
+    """test Oracle handling
+       currently not executing sql however, just formatting"""
 
+    paramstyle = "named"
     type_sub = dict
 
 
 class DryRunTest_Postgresql(TestBinder, unittest.TestCase):
-    """test Postgresql handling"""
+    """test Postgresql handling
+       currently not executing sql however, just formatting"""
 
     paramstyle = "pyformat"
-
     type_sub = dict
-
-
 
 
 if __name__ == '__main__':
