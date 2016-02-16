@@ -73,6 +73,9 @@ class Binder(object):
 but expecting one of %s. 
 See https://www.python.org/dev/peps/pep-0249/#paramstyle for details""" % \
     (paramstyle, "/".join(cls._di_paramstyle.keys()))
+        except NotImplementedError, e2:
+            msg = "%s is not implemented yet" % (paramstyle)
+            raise NotImplementedError(msg)
 
     _di_paramstyle = {}
 
@@ -84,13 +87,15 @@ class Binder_pyformat(Binder):
 
     def format(self, tqry, *args):
         """
-        looks up substitutions and sets them up in self.sub
+        looks up substitutions and sets them up in dictionary self.sub
 
         postgresql accepts Python named variable so keeping the query as is
 
         select * from foo where bar = %(somebar)s" 
         => 
         select * from foo where bar = %(somebar)s
+        {"somebar" : value-found-for-somebar}
+
 
         """
 
@@ -133,6 +138,67 @@ class Binder_pyformat(Binder):
             raise
 
 
+class Binder_qmark(Binder):
+    """query template and substitution management for sqlite3
+       query changes from %(somevar)s to ?
+
+
+        select * from foo where bar = %(somebar)s
+        => 
+        select * from foo where bar = ?, 
+        (value-found-for-somebar,)
+
+    """
+
+    def format(self, tqry, *args):
+        """
+        looks up substitutions and sets them up in self.sub
+        """
+
+        self.sub = []
+        self.li_arg = list(args)
+        self.qry = tqry % (self)
+        return self.qry, tuple(self.sub)
+
+
+    def __getitem__(self, keyname):
+        """
+        finds a substitution and append it to the bind list
+        but also transforms the variable in the query to ?
+        """
+
+        for arg in self.li_arg:
+            try:
+
+                got = arg[keyname]
+                self.sub.append(got)
+                
+                #replace the query's %(foo)s with ?
+                return "?"
+            except (KeyError):
+                # continue
+
+                try:
+                    got = getattr(arg, keyname)
+                    self.sub.append(got)
+                    return "?"
+                except AttributeError:
+                    continue
+
+
+            except (AttributeError, TypeError):
+                try:
+                    got = getattr(arg, keyname)
+                    self.sub.append(got)
+
+                    return "?"
+                except AttributeError:
+                    continue
+        else:
+            raise KeyError(keyname)
+
+
+
 class Binder_named(Binder):
     """query template and substitution management for Oracle
        query changes from %(somevar)s to :somevar format
@@ -148,6 +214,7 @@ class Binder_named(Binder):
         "select * from foo where bar = %(somebar)s" 
         => 
         "select * from foo where bar = :somebar "
+        {"somebar" : value-found-for-somebar}
         """
 
         self.sub = {}
@@ -210,14 +277,14 @@ class Binder_named(Binder):
 class Binder_NotImplementedError(Binder):
     """not implemented yet"""
 
-    def __init__(self, paramstyle):
-        raise NotImplementedError(paramstyle)
+    def __init__(self, *args, **kwds):
+        raise NotImplementedError()
 
 #This is what decides how the Varholder will process incoming template substitutions
 Binder._di_paramstyle["pyformat"] = Binder_pyformat
 Binder._di_paramstyle["named"] = Binder_named
 
 #and these are not done yet
-Binder._di_paramstyle["qmark"] = Binder_NotImplementedError
+Binder._di_paramstyle["qmark"] = Binder_qmark
 Binder._di_paramstyle["numeric"] = Binder_NotImplementedError
 Binder._di_paramstyle["format"] = Binder_NotImplementedError
