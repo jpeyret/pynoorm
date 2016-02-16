@@ -1,7 +1,7 @@
 """
 Binder classes perform two functions through their format method
 
-- given a list of arguments in addition to a query they will find the
+- given a list of arguments in addition to a query template they will find the
 first argument that satisfies lookups driven by the query's substition variables
 and return them in a suitable substition
 
@@ -229,13 +229,15 @@ class Binder_named(Binder):
         """
         finds a substitution
         but also transforms the variable in the query to Oracle named 
-        format
+        format :foo
         """
+
+        t_qry_replace = ":%s"
 
         #already seen 
         #replace the query's %(foo)s with :foo
         if keyname in self.sub:
-            return ":%s" % (keyname)
+            return t_qry_replace % (keyname)
 
         for arg in self.li_arg:
             try:
@@ -244,7 +246,7 @@ class Binder_named(Binder):
                 self.sub[keyname] = got
                 
                 #replace the query's %(foo)s with :foo
-                return ":%s" % (keyname)
+                return t_qry_replace % (keyname)
             except (KeyError):
                 continue
             except (AttributeError, TypeError):
@@ -252,7 +254,7 @@ class Binder_named(Binder):
                     got = getattr(arg, keyname)
                     self.sub[keyname] = got
 
-                    return ":%s" % (keyname)
+                    return t_qry_replace % (keyname)
                 except AttributeError:
                     continue
 
