@@ -11,17 +11,13 @@ import unittest
 
 from pynoorm.binder import Binder
 
-
-
-import pdb
-
 import logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-
 def parse_res(cursor, li_fetched):
+    "simplistic parser for fetched cursor data"
     li_parsed = []
     for row in li_fetched:
         di = dict()
@@ -36,6 +32,7 @@ def parse_res(cursor, li_fetched):
 #global variables
 qty = 7
 
+
 #supporting objects
 class AttrDict(object):
     """demos __getitem__, getattr precedence"""
@@ -45,38 +42,45 @@ class AttrDict(object):
     def __getitem__(self, keyname):
         return self.data[keyname]
 
+
 class BasicArgument(object):
     """just used to allow attribute assignment"""
     pass
 
 
 class TestBinder(object):
-
+    """the basic test functionality, able to work on both
+       a live test (i.e. where the orders table has been created)
+       and a dryrun (where the orders table is not created but
+       the qry and substitions can be tested)"""
 
     def __repr__(self):
         return self.__class__.__name__
 
-
-    li_custid = ["ACME","AMAZON"]
+    li_custid = ["ACME", "AMAZON"]
     num_orders = 5
 
-    tqry_ins = """insert into orders(custid, ordernum, sku, qty) 
-                             values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
+    tqry_ins = """insert into orders
+                  (custid, ordernum, sku, qty)
+                   values
+                   (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
 
-    tqry_orders_for_customer = """select * 
-                                  from orders 
+    tqry_orders_for_customer = """select *
+                                  from orders
                                   where custid = %(custid)s """
 
-    tqry_customer_ordernum = """select * 
-                                from orders 
-                                where custid = %(custid)s 
+    tqry_customer_ordernum = """select *
+                                from orders
+                                where custid = %(custid)s
                                 and ordernum = %(ordernum)s"""
 
     tqry_max_order = """select *
               from orders
               where custid = %(custid)s
-              and ordernum = (select max(s.ordernum) from orders s where custid = orders.custid)"""
-
+              and ordernum =
+                  (select max(s.ordernum)
+                   from orders s
+                   where custid = orders.custid)"""
 
     conn = cursor = binder = None
 
@@ -89,11 +93,10 @@ class TestBinder(object):
 
     @classmethod
     def tearDownClass(cls):
-       cls.conn = cls.cursor = cls.binder = None
+        cls.conn = cls.cursor = cls.binder = None
 
     @classmethod
     def setUpClass(cls):
-        # logger.info("%s.setUpClass()" % (cls))
         try:
             cls.binder = Binder.factory(paramstyle=cls.paramstyle)
         except AttributeError, e:
@@ -146,16 +149,14 @@ class TestBinder(object):
 
                 self.assertTrue(looking_for in query, msg)
 
-
     def test_000_insert(self):
         """
         test precedence with 3 arguments:
            1.  self - this is where custid is coming from
            2.  a per-order dict that holds order info
-           3.  self.defaults, which are not actually used as 
-               all bind parameters are found in the first 2 arguments    
+           3.  self.defaults, which are not actually used as
+               all bind parameters are found in the first 2 arguments
         """
-
 
         for custid in self.li_custid:
             self.custid = custid
@@ -170,7 +171,12 @@ class TestBinder(object):
                 #precedence over that of self.defaults
                 di["qty"] = 42
 
-                qry, sub = self.binder.format(self.tqry_ins, self, di, self.defaults)
+                qry, sub = self.binder.format(
+                    self.tqry_ins,
+                    self,
+                    di,
+                    self.defaults,
+                    )
 
                 #check the substitions
                 # values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
@@ -179,7 +185,11 @@ class TestBinder(object):
                     self.assertEqual(exp, sub)
 
                 elif self.type_sub == dict:
-                    exp = dict(custid=self.custid, ordernum=ordernum, sku=di["sku"], qty=di["qty"])
+                    exp = dict(
+                        custid=self.custid,
+                        ordernum=ordernum,
+                        sku=di["sku"],
+                        qty=di["qty"])
                     self.assertEqual(exp, sub)
 
                 if self.cursor:
@@ -195,7 +205,10 @@ class TestBinder(object):
         self.custid = self.li_custid[1]
 
         #we should expect custid to come from self.li_custid[0]
-        qry, sub = self.binder.format(self.tqry_orders_for_customer, dict(custid=custid), self)
+        qry, sub = self.binder.format(
+            self.tqry_orders_for_customer,
+            dict(custid=custid),
+            self)
 
         #check the substitions
         # values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
@@ -214,7 +227,6 @@ class TestBinder(object):
         else:
             logger.info("%s execute skipped - no cursor" % (self))
             return
-
 
         self.cursor.execute(qry, sub)
         res = self.cursor.fetchall()
@@ -240,7 +252,7 @@ class TestBinder(object):
         tqry_ins = """insert into orders(custid, ordernum, sku, qty)
         values (%(custid)s, %(ordernum)s, %(ordernum)s, %(qty)s)"""
 
-        qry, sub = self.binder.format(tqry_ins, 
+        qry, sub = self.binder.format(tqry_ins,
             dict(
                 sku="wont_find_this",
                 ordernum=ordernum,
@@ -269,7 +281,7 @@ class TestBinder(object):
         test_crit.custid = custid
         test_crit.ordernum = ordernum
 
-        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit) 
+        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit)
 
         self.cursor.execute(qry, sub)
 
@@ -300,7 +312,6 @@ class TestBinder(object):
 
         default = dict(qty=0)
 
-
         #set up an argument with sku both as an item and an attribute
         item_sku = "item_sku"
         attr_sku = "attr_sku"
@@ -311,10 +322,11 @@ class TestBinder(object):
         test.custid = custid
         test.ordernum = ordernum
 
-        qry, sub = self.binder.format(tqry_ins,
+        qry, sub = self.binder.format(
+            tqry_ins,
             test,
             default,
-        )
+            )
 
         if self.type_sub == tuple:
             exp = (custid, ordernum, item_sku, 0)
@@ -332,12 +344,11 @@ class TestBinder(object):
 
         self.cursor.execute(qry, sub)
 
-
         test_crit = BasicArgument()
         test_crit.custid = custid
         test_crit.ordernum = ordernum
 
-        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit) 
+        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit)
 
         self.cursor.execute(qry, sub)
 
@@ -347,8 +358,6 @@ class TestBinder(object):
 
         #column type should be respected
         self.assertEqual(data["sku"], item_sku)
-
-
 
     def test_005_missingbind(self):
         """...if a bind parameter is found nowhere, throws KeyError
@@ -366,7 +375,6 @@ class TestBinder(object):
         except KeyError, e:
             self.assertTrue("ordernum" in str(e))
 
-
     def test_006_bind_from_globals_locals(self):
         """...can grab global variables.  not necessarily a good idea"""
 
@@ -376,7 +384,11 @@ class TestBinder(object):
         di_substit = dict(
                 sku="somesku",
                 )
-        qry, sub = self.binder.format(self.tqry_ins, di_substit, locals(), globals())
+        qry, sub = self.binder.format(
+            self.tqry_ins,
+            di_substit,
+            locals(),
+            globals())
 
         #qty is coming from the module-level global value
 
@@ -386,7 +398,6 @@ class TestBinder(object):
         elif self.type_sub == dict:
             self.assertEqual(7, sub["qty"])
             self.assertEqual(ordernum, sub["ordernum"])
-
 
     def test_007_support_nobinds(self):
         """...queries without binds are supported"""
@@ -400,9 +411,8 @@ class TestBinder(object):
         qry, sub = self.binder.format(tqry_safe)
         self.assertEqual(qry, tqry_safe)
 
-
     def test_008_beware_of_sqlinjection(self):
-        """...if you aim carefully, you can still shoot yourself in the foot!"""
+        """...if you aim carefully, you can shoot yourself in the foot!"""
 
         tqry_unsafe = """select * from orders where custid = '%(custid)s' """
 
@@ -424,9 +434,9 @@ class LiveTest(object):
 
     @classmethod
     def tearDownClass(cls):
-       cls.cursor.close()
-       cls.conn.close()
-       cls.conn = cls.cursor = cls.binder = None
+        cls.cursor.close()
+        cls.conn.close()
+        cls.conn = cls.cursor = cls.binder = None
 
     @staticmethod
     def setup_class(cls):
@@ -439,7 +449,9 @@ class LiveTest(object):
         try:
             cls.cursor.execute(cls.qry_create)
         except Exception, e:
-            logger.error("%s table creation exception %s.  cursor:%s" % (cls, e, cls.cursor))
+            msg = "%s table creation exception %s. cursor:%s" \
+                % (cls, e, cls.cursor)
+            logger.error(msg)
             raise
 
         cls.binder = Binder.factory(paramstyle=cls.paramstyle)
@@ -452,7 +464,7 @@ class LiveTest(object):
             # unittest.skip("no connection")
             raise unittest.SkipTest("%s.no connection" % (self))
 
-        qry, sub = self.binder.format(self.tqry_ins, 
+        qry, sub = self.binder.format(self.tqry_ins,
             dict(
                 sku="drop table orders;",
                 ordernum=ordernum,
@@ -466,7 +478,7 @@ class LiveTest(object):
         test_crit.custid = custid
         test_crit.ordernum = ordernum
 
-        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit) 
+        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit)
         self.cursor.execute(qry, sub)
 
         res = self.cursor.fetchone()
@@ -477,17 +489,12 @@ class LiveTest(object):
         self.assertEqual(custid, data.get("custid"))
         self.assertEqual(ordernum, data.get("ordernum"))
 
-
     def test_009_bind_from_rows(self):
-        """
-        bind from rows 
-        bind against property
-
+        """...bind from rows & against a property
         """
 
         testname = "test_009_bind_from_rows"
         self.custid = self.li_custid[1]
-
 
         class PropertyIncrementer(object):
             def __init__(self, ordernum):
@@ -496,6 +503,7 @@ class LiveTest(object):
 
             def ordernum():
                 doc = "The ordernum property."
+
                 def fget(self):
                     # raise NotImplementedError()
                     self._ordernum += 1
@@ -518,7 +526,6 @@ class LiveTest(object):
         old_ordernum = row["ordernum"]
         incrementer = PropertyIncrementer(old_ordernum)
 
-
         before = {}
         before.update(row)
         del before["ordernum"]
@@ -526,11 +533,15 @@ class LiveTest(object):
         qry_ins, sub = self.binder(self.tqry_ins, incrementer, row)
 
         if self.type_sub == tuple:
-            exp = (row["custid"], old_ordernum+1, row["sku"], row["qty"])
+            exp = (row["custid"], old_ordernum + 1, row["sku"], row["qty"])
             self.assertEqual(exp, sub)
 
         elif self.type_sub == dict:
-            exp = dict(custid=row["custid"], ordernum=old_ordernum+1, sku=row["sku"], qty=row["qty"])
+            exp = dict(
+                custid=row["custid"],
+                ordernum=old_ordernum + 1,
+                sku=row["sku"],
+                qty=row["qty"])
             self.assertEqual(exp, sub)
 
         #insert the new row, fetch it
@@ -545,7 +556,7 @@ class LiveTest(object):
 
         #expecting all data copied except for ordernum incrementation
         self.assertEqual(before, after)
-        self.assertEqual(old_ordernum+1, new_ordernum)
+        self.assertEqual(old_ordernum + 1, new_ordernum)
 
 
 class Sqlite3(LiveTest, TestBinder, unittest.TestCase):

@@ -1,8 +1,10 @@
 """
 Binder classes perform two functions through their format method
 
-- given a list of arguments in addition to a query template they will find the
-first argument that satisfies lookups driven by the query's substition variables
+- given a list of arguments in addition to a query template
+they will find the
+first argument that satisfies lookups
+driven by the query's substition variables
 and return them in a suitable substition
 
     class MyClass(object):
@@ -15,34 +17,40 @@ and return them in a suitable substition
     default.customer = 201
     arg2.country = "CAN"
 
-    qry, sub = format("select * from customer where country = %(country)s and custid = %(customer)s", arg1, default)
+    qry, sub = format("
+        select *
+        from customer
+        where country = %(country)s
+        and custid = %(customer)s", arg1, default)
 
     means that we will be fetching for country=CAN, custid=101
 
-- the query template itself is transformed to a format that fits the underlying databases
-  bind variable scheme which protects against sql injection attacks.
+- the query template itself is transformed to a format
+  that fits the underlying database's bind variable
+  scheme which protects against sql injection attacks.
 
   For example, assuming an Oracle database (paramstyle="named")
 
   qry:
       "select * from customer where country = :country and custid = :customer"
   sub:
-      {"country":"CAN", "customer" : 101}      
+      {"country":"CAN", "customer" : 101}
 
   Postgres (paramstyle=""):
 
   qry:
       "select * from customer where country = :country and custid = :customer"
   sub:
-      {"country":"CAN", "customer" : 101}      
+      {"country":"CAN", "customer" : 101}
 
 
-  a positional database (paramstyle="numeric") (NotImplementedError) would instead return
+  a positional database (paramstyle="numeric") (NotImplementedError)
+  would instead return
 
   qry:
       "select * from customer where country = :1 and custid = :2"
   sub:
-      ["CAN", 101] 
+      ["CAN", 101]
 
 
 """
@@ -58,22 +66,22 @@ class Binder(object):
     @classmethod
     def factory(cls, paramstyle):
         """
-        
         return a Binder subclass instance appropriate
         to the underlying db library paramstyle bind variable
 
         :param paramstyle: parameter style string as per PEP-249
-
         """
 
         try:
             return cls._di_paramstyle[paramstyle]()
         except KeyError:
             msg = """got:%s,
-but expecting one of %s. 
-See https://www.python.org/dev/peps/pep-0249/#paramstyle for details""" % \
-    (paramstyle, "/".join(cls._di_paramstyle.keys()))
-        except NotImplementedError, e2:
+                  but expecting one of %s.
+                  See
+                  https://www.python.org/dev/peps/pep-0249/#paramstyle
+                  for details""" % \
+                  (paramstyle, "/".join(cls._di_paramstyle.keys()))
+        except NotImplementedError:
             msg = "%s is not implemented yet" % (paramstyle)
             raise NotImplementedError(msg)
 
@@ -82,8 +90,9 @@ See https://www.python.org/dev/peps/pep-0249/#paramstyle for details""" % \
 
 class Binder_pyformat(Binder):
     """support Postgresql
-       query template and substitution management for postgresql 
-       query is unchanged because postgresql is happy with %(somevar)s as a  bind
+       query template and substitution management for postgresql
+       query is unchanged because postgresql is happy
+       with %(somevar)s as a  bind
     """
 
     def format(self, tqry, *args):
@@ -92,23 +101,21 @@ class Binder_pyformat(Binder):
 
         postgresql accepts Python named variable so keeping the query as is
 
-        select * from foo where bar = %(somebar)s" 
-        => 
+        select * from foo where bar = %(somebar)s"
+        =>
         select * from foo where bar = %(somebar)s
         {"somebar" : value-found-for-somebar}
-
-
         """
 
         self.sub = {}
         self.li_arg = list(args)
 
-
         tqry % (self)
+        #Postgresql query format stays as %(foo)s
+        #so we just return the original query
         return tqry, self.sub
 
     __call__ = format
-
 
     def __getitem__(self, key):
         if key in self.sub:
@@ -119,17 +126,14 @@ class Binder_pyformat(Binder):
 
                 got = arg[key]
                 self.sub[key] = got
-                
-                #"select * from foo where bar = %(somebar)s" => "select * from foo where bar = %(somebar)s"
-                #so we're keeping the tqry at the end and the results of __getitem__ don't matter to the qry
+                #Postgresql query format stays as %(foo)s
                 return None
             except (KeyError):
                 #we have __getitem__, just no key
-
                 try:
                     #try getattr
                     got = getattr(arg, key)
-                    self.sub[key] = got                
+                    self.sub[key] = got
                     return None
                 except AttributeError:
                     continue
@@ -149,16 +153,14 @@ class Binder_pyformat(Binder):
 
 
 class Binder_qmark(Binder):
-    """supports:  sqlite3
-       query template and substitution management for sqlite3
-       query changes from %(somevar)s to ?
-
+    """ supports:  sqlite3
+        query template and substitution management for sqlite3
+        query changes from %(somevar)s to ?
 
         select * from foo where bar = %(somebar)s
-        => 
-        select * from foo where bar = ?, 
+        =>
+        select * from foo where bar = ?,
         (value-found-for-somebar,)
-
     """
 
     def format(self, tqry, *args):
@@ -186,11 +188,9 @@ class Binder_qmark(Binder):
 
                 got = arg[key]
                 self.sub.append(got)
-                
                 return qry_replace
             except (KeyError):
                 #OK, we have __getitem__, just doesn't have key
-
                 try:
                     #try getattr
                     got = getattr(arg, key)
@@ -211,21 +211,20 @@ class Binder_qmark(Binder):
             raise KeyError(key)
 
 
-
 class Binder_named(Binder):
-    """query template and substitution management for Oracle
+    """supports: Oracle
+       query template and substitution management for Oracle
        query changes from %(somevar)s to :somevar format
     """
 
-        
     def format(self, tqry, *args):
         """
         looks up substitutions and sets them up in self.sub
 
-        but also transforms the query to Oracle named 
+        but also transforms the query to Oracle named
         format
-        "select * from foo where bar = %(somebar)s" 
-        => 
+        "select * from foo where bar = %(somebar)s"
+        =>
         "select * from foo where bar = :somebar "
         {"somebar" : value-found-for-somebar}
         """
@@ -240,13 +239,13 @@ class Binder_named(Binder):
     def __getitem__(self, key):
         """
         finds a substitution
-        but also transforms the variable in the query to Oracle named 
+        but also transforms the variable in the query to Oracle named
         format :foo
         """
 
         t_qry_replace = ":%s"
 
-        #already seen 
+        #already seen so already in the substition dict
         #replace the query's %(foo)s with :foo
         if key in self.sub:
             return t_qry_replace % (key)
@@ -256,8 +255,6 @@ class Binder_named(Binder):
 
                 got = arg[key]
                 self.sub[key] = got
-                
-                #replace the query's %(foo)s with :foo
                 return t_qry_replace % (key)
             except (KeyError):
                 #we have __getitem__, just no key
@@ -265,7 +262,7 @@ class Binder_named(Binder):
                 try:
                     #try getattr
                     got = getattr(arg, key)
-                    self.sub[key] = got                
+                    self.sub[key] = got
                     return t_qry_replace % (key)
                 except AttributeError:
                     continue
@@ -285,7 +282,6 @@ class Binder_named(Binder):
         except Exception, e:
             raise
 
-
     """
     https://www.python.org/dev/peps/pep-0249/#paramstyle
 
@@ -295,8 +291,9 @@ class Binder_named(Binder):
     numeric     Numeric, positional style, e.g. ...WHERE name=:1
     named       Named style, e.g. ...WHERE name=:name
     format      ANSI C printf format codes, e.g. ...WHERE name=%s
-    pyformat    Python extended format codes, e.g. ...WHERE name=%(name)s 
+    pyformat    Python extended format codes, e.g. ...WHERE name=%(name)s
     """
+
 
 class Binder_NotImplementedError(Binder):
     """not implemented yet"""
@@ -304,11 +301,12 @@ class Binder_NotImplementedError(Binder):
     def __init__(self, *args, **kwds):
         raise NotImplementedError()
 
-#This is what decides how the Varholder will process incoming template substitutions
+#This is what decides how the Binder
+#will process incoming template substitutions
 Binder._di_paramstyle["pyformat"] = Binder_pyformat
 Binder._di_paramstyle["named"] = Binder_named
+Binder._di_paramstyle["qmark"] = Binder_qmark
 
 #and these are not done yet
-Binder._di_paramstyle["qmark"] = Binder_qmark
 Binder._di_paramstyle["numeric"] = Binder_NotImplementedError
 Binder._di_paramstyle["format"] = Binder_NotImplementedError
