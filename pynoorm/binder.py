@@ -1,11 +1,8 @@
 """
 Binder classes perform two functions through their format method
 
-- given a list of arguments in addition to a query template
-they will find the
-first argument that satisfies lookups
-driven by the query's substition variables
-and return them in a suitable substition
+- given a query template with %(somevar)s python substition
+
 
     class MyClass(object):
         pass
@@ -62,6 +59,16 @@ class Binder(object):
 
     def __init__(self, *args, **kwds):
         pass
+
+    def format(self, tqry, *args):
+        """
+        :param tqry: query with optional substitution variables
+                     Python style i.e. 
+                     select * from orders where custid = %(custid)s
+        :param *args: zero or more arguments that will be check 
+                      left-to-right, argument[<key>], getattr(argument,<key>)
+        """
+
 
     @classmethod
     def factory(cls, paramstyle):
