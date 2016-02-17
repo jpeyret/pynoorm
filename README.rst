@@ -15,8 +15,8 @@ PyNoORM
 
 utilities to ease sql without, or in addition to, an ORM
 
-* Free software: ISC license
-* Documentation: https://pynoorm.readthedocs.org.
+* Free software: MIT license
+* Documentation: (pending) https://pynoorm.readthedocs.org.
 
 Features
 --------
