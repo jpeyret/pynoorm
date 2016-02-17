@@ -581,9 +581,9 @@ class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
 
         cls.conn = sqlite3.connect(":memory")
         cls.cursor = cls.conn.cursor()
+        cls.OperationalError = sqlite3.OperationalError
 
         LiveTest.setup_class(cls)
-        cls.OperationalError = sqlite3.OperationalError
 
 
 class DryRunTest_Oracle(TestBinder, unittest.TestCase):
