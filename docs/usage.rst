@@ -9,15 +9,9 @@ The Binder Class
 
 A binder is used to abstract differences in the underlying database's bind variable syntax (see PEP249_).
 
-.. method:: format(query_template, *args)
-
-	returns a query and bind parameter object appropriate for the underlying database.  All input parameters to this method are unchanged.
-
-    query returned
+Calling `Binder.format(query_template, *args)` does the following:
 
 	- Any variable in standard Python `%(key)s` format found in `query_template` are adjusted to use bind placeholders for the target database. i.e. *'where custid = %(custid)s'* would become *'where custid = ?'* on **sqlite3**. 
-
-    parameter object returned
 
 	- Each `key` is looked up against the `*args` list, first to last.  For each argument, a dictionary lookup is tried first, then an attribute lookup.  If the variable is not found, then the check is performed against the next argument.  If all args are exhausted, a **KeyError** is thrown.
 
@@ -29,11 +23,6 @@ A binder is used to abstract differences in the underlying database's bind varia
 	3. Oracle, SQLite and PostgreSQL are currently supported, but Binder subclasses are extremely simple to write.
 
 	.. _PEP249: https://www.python.org/dev/peps/pep-0249
-
-
-
-  Remove and return an arbitrary element from the set.  Raises
-  :exc:`KeyError` if the set is empty.
 
 
 Basic use of Binder
