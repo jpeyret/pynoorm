@@ -140,7 +140,7 @@ class TestBinder(object):
                 try:
                     assert finder.li_key
                 except Exception, e:
-                    pdb.set_trace()
+                    # pdb.set_trace()
                     raise
 
             for key in finder.li_key:

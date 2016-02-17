@@ -69,6 +69,14 @@ class Binder(object):
                       left-to-right, argument[<key>], getattr(argument,<key>)
         """
 
+    def __repr__(self):
+        msg = "%s paramstyle=%s" % (self.__class__.__name__, self.paramstyle)
+
+        if hasattr(self, "supports"):
+            msg += " supports: %s" % (self.supports) 
+
+        return msg
+
 
     @classmethod
     def factory(cls, paramstyle):
@@ -101,6 +109,9 @@ class Binder_pyformat(Binder):
        query is unchanged because postgresql is happy
        with %(somevar)s as a  bind
     """
+
+    paramstyle = "pyformat"
+
 
     def format(self, tqry, *args):
         """
@@ -159,7 +170,7 @@ class Binder_pyformat(Binder):
             raise
 
 
-class Binder_qmark(Binder):
+class BinderQmark(Binder):
     """ supports:  sqlite3
         query template and substitution management for sqlite3
         query changes from %(somevar)s to ?
@@ -169,6 +180,9 @@ class Binder_qmark(Binder):
         select * from foo where bar = ?,
         (value-found-for-somebar,)
     """
+
+    paramstyle = "qmark"
+    supports = "sqlite3"
 
     def format(self, tqry, *args):
         """
@@ -218,11 +232,15 @@ class Binder_qmark(Binder):
             raise KeyError(key)
 
 
-class Binder_named(Binder):
+class BinderNamed(Binder):
     """supports: Oracle
        query template and substitution management for Oracle
        query changes from %(somevar)s to :somevar format
     """
+
+    paramstyle = "named"
+    supports = "Oracle"
+
 
     def format(self, tqry, *args):
         """
@@ -305,14 +323,16 @@ class Binder_named(Binder):
 class Binder_NotImplementedError(Binder):
     """not implemented yet"""
 
+    paramstyle = "not implemented"
+
     def __init__(self, *args, **kwds):
         raise NotImplementedError()
 
 #This is what decides how the Binder
 #will process incoming template substitutions
 Binder._di_paramstyle["pyformat"] = Binder_pyformat
-Binder._di_paramstyle["named"] = Binder_named
-Binder._di_paramstyle["qmark"] = Binder_qmark
+Binder._di_paramstyle["named"] = BinderNamed
+Binder._di_paramstyle["qmark"] = BinderQmark
 
 #and these are not done yet
 Binder._di_paramstyle["numeric"] = Binder_NotImplementedError
