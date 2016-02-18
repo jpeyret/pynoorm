@@ -76,6 +76,10 @@ Keeping all others things equal, switching to **Oracle** just requires switching
     import cx_Oracle
     binder = Binder.factory(cx_Oracle.paramstyle)
 
+    #this would have worked just as well
+    #binder = Binder.factory("named")
+
+
 	>>> pprint(binder)
 	BinderNamed paramstyle=named supports: Oracle
 
