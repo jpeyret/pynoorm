@@ -1,8 +1,12 @@
 .. highlight:: shell
 
+**PyPI support is coming, but is not done yet.**
+
+
 ============
 Installation
 ============
+
 
 At the command line::
 
