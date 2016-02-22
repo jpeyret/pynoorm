@@ -88,7 +88,7 @@ setup(
     install_requires=requirements,
     license="MIT License",
     zip_safe=False,
-    keywords='pynoorm',
+    keywords='sql database multiplatform',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
