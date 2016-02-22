@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* JL Peyret <jpeyret@bemyerp.com>
+* JL Peyret <jpeyret@gmail.com>
 
 Contributors
 ------------

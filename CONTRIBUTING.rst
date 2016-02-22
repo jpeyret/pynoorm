@@ -12,6 +12,14 @@ You can contribute in many ways:
 Types of Contributions
 ----------------------
 
+GitHub etiquette & usage
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Anyone knowledgeable about GitHub is welcome to make some suggestions on 
+how to organize this repo.  I am totally open to it.  However, please ensure
+that your suggestions are part of generally accepted best practices and do not
+only reflect your personal preferences.
+
 Report Bugs
 ~~~~~~~~~~~
 

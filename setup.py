@@ -25,10 +25,10 @@ test_requirements = [
 setup(
     name='pynoorm',
     version='0.1.0',
-    description="utilities to ease sql without, or in addition to, an ORM",
+    description="facilitates working in SQL without, or in addition to, an ORM.",
     long_description=readme + '\n\n' + history,
     author="JL Peyret",
-    author_email='jpeyret@bemyerp.com',
+    author_email='jpeyret@gmail.com',
     url='https://github.com/jpeyret/pynoorm',
     packages=[
         'pynoorm',
