@@ -13,7 +13,32 @@ PyNoORM
         :alt: Documentation Status
 
 
-utilities to ease sql without, or in addition to, an ORM
+Easier raw SQL, with or without an ORM.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Binder class
+----------------
+
+A Binder abstracts differences in the underlying database's bind variable syntax and also grabs bind variables
+from a list of arguments, using dict, then attribute lookup.
+
+Simple **sqlite3** example::
+
+    from pynoorm.binder import Binder
+    binder = Binder.factory("qmark")
+
+    #just for test... assign a custid to binder for attribute lookup
+    binder.custid = "AMAZON"
+
+    query, parameters = binder("select * from orders where custid = %(custid)s", dict(custid="ACME"), binder)
+
+``query`` and ``parameters`` are now in the sqlite3/qmark format::
+
+	>>> print(query)
+	select * from orders where custid = ?
+	>>> print(parameters)
+	('ACME',)
+
 
 * Free software: MIT license
 * Documentation: (pending) https://pynoorm.readthedocs.org.
@@ -21,7 +46,8 @@ utilities to ease sql without, or in addition to, an ORM
 Features
 --------
 
-* TODO
+* adjust query to support database parameter style
+* find and prepare bind parameters from `*args`.
 
 Credits
 ---------
