@@ -196,13 +196,16 @@ class BinderQmark(Binder):
 
     __call__ = format
 
+    qry_replace = "?"
+
     def __getitem__(self, key):
         """
         finds a substitution and append it to the bind list
         but also transforms the variable in the query to ?
         """
 
-        qry_replace = "?"
+        qry_replace = self.qry_replace
+
 
         for arg in self.li_arg:
             try:
@@ -230,6 +233,25 @@ class BinderQmark(Binder):
                     continue
         else:
             raise KeyError(key)
+
+
+class BinderFormat(BinderQmark):
+
+    """supports: MySQL
+       query template and substitution management for MySQL
+       query changes from %(somevar)s to %s format
+       parameters are (<var1>,<var2>,)
+
+       Note: pretty much identical to BinderQmark/sqlite3
+       except for the placeholder being %s
+    """
+
+    paramstyle = "format"
+    supports = "MySQL"
+
+    qry_replace = "%s"
+
+
 
 
 class BinderNamed(Binder):
