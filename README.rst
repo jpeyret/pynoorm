@@ -39,6 +39,20 @@ Simple **sqlite3** example::
 	>>> print(parameters)
 	('ACME',)
 
+Oracle, with mutiple parameters?::
+
+    import cx_Oracle
+    binder_ora = Binder.factory(cx_Oracle.paramstyle)
+
+    tqry = "select * from orders where custid = %(custid)s and has_shipped = %(shipped)s"
+    query, parameters = binder_ora(tqry, dict(custid="ACME", shipped=1), binder)
+
+    >>> print(query)
+    select * from orders where custid = :custid and has_shipped = :shipped
+    >>> print(parameters)
+    {'shipped': 1, 'custid': 'ACME'}
+
+Also supported:  Postgresql
 
 * Free software: MIT license
 * Documentation: (pending) https://pynoorm.readthedocs.org.
