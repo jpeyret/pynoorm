@@ -206,7 +206,6 @@ class BinderQmark(Binder):
 
         qry_replace = self.qry_replace
 
-
         for arg in self.li_arg:
             try:
 
@@ -244,14 +243,13 @@ class BinderFormat(BinderQmark):
 
        Note: pretty much identical to BinderQmark/sqlite3
        except for the placeholder being %s
+
     """
 
     paramstyle = "format"
     supports = "MySQL"
 
     qry_replace = "%s"
-
-
 
 
 class BinderNamed(Binder):
@@ -262,7 +260,6 @@ class BinderNamed(Binder):
 
     paramstyle = "named"
     supports = "Oracle"
-
 
     def format(self, tqry, *args):
         """
@@ -355,7 +352,7 @@ class Binder_NotImplementedError(Binder):
 Binder._di_paramstyle["pyformat"] = Binder_pyformat
 Binder._di_paramstyle["named"] = BinderNamed
 Binder._di_paramstyle["qmark"] = BinderQmark
+Binder._di_paramstyle["format"] = BinderFormat
 
 #and these are not done yet
 Binder._di_paramstyle["numeric"] = Binder_NotImplementedError
-Binder._di_paramstyle["format"] = Binder_NotImplementedError

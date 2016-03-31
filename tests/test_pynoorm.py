@@ -151,7 +151,7 @@ class TestBinder(object):
 
     def test_000_insert(self):
         """
-        test precedence with 3 arguments:
+        ...test precedence with 3 arguments:
            1.  self - this is where custid is coming from
            2.  a per-order dict that holds order info
            3.  self.defaults, which are not actually used as
@@ -427,6 +427,39 @@ class TestBinder(object):
         logger.info(qry)
 
 
+    def test_009_like(self):
+        """...check like-based searches"""
+        testname = "test_009_like"
+
+        tqry = """select * from orders where custid like %(crit_custid)s """
+
+        crit_custid="AC%"
+        qry, parameters = self.binder.format(tqry, dict(crit_custid=crit_custid), self,)
+        # self.assertEqual(qry, tqry_safe)
+
+
+        if self.type_sub == tuple:
+            self.assertTrue(crit_custid in parameters)
+            # self.assertTrue(ordernum in parameters)
+        elif self.type_sub == dict:
+            self.assertEqual(crit_custid, parameters["crit_custid"])
+
+        if not self.cursor:
+            logger.info("%s.%s.return - no cursor" % (self, testname))
+            return
+
+        self.cursor.execute(qry, parameters)
+
+        res = self.cursor.fetchone()
+
+        data = parse_res(self.cursor, [res])[0]
+
+        #column type should be respected
+        self.assertEqual(data["custid"], "ACME")
+
+
+
+
 class LiveTest(object):
 
     def __repr__(self):
@@ -600,6 +633,13 @@ class DryRunTest_Postgresql(TestBinder, unittest.TestCase):
 
     paramstyle = "pyformat"
     type_sub = dict
+
+class DryRunTest_MySQL(TestBinder, unittest.TestCase):
+    """test Postgresql handling
+       currently not executing sql however, just formatting"""
+
+    paramstyle = "format"
+    type_sub = tuple
 
 
 if __name__ == '__main__':
