@@ -95,7 +95,7 @@ class Binder(object):
                   See
                   https://www.python.org/dev/peps/pep-0249/#paramstyle
                   for details""" % \
-                  (paramstyle, "/".join(cls._di_paramstyle.keys()))
+                  (paramstyle, "/".join(list(cls._di_paramstyle.keys())))
         except NotImplementedError:
             msg = "%s is not implemented yet" % (paramstyle)
             raise NotImplementedError(msg)
@@ -166,7 +166,7 @@ class Binder_pyformat(Binder):
 
         try:
             raise KeyError(key)
-        except Exception, e:
+        except Exception as e:
             raise
 
 
@@ -323,7 +323,7 @@ class BinderNamed(Binder):
 
         try:
             raise KeyError(key)
-        except Exception, e:
+        except Exception as e:
             raise
 
     """
