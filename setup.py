@@ -11,7 +11,8 @@ if sys.version_info < (2, 7):
     raise Exception("PyNoORM requires Python 2.7 or higher.")
 
 if sys.version_info >= (3,):
-    raise Exception("PyNoORM support for Python 3.x is pending")
+    if sys.version_info < (3, 3):
+        raise Exception("PyNoORM requires Python 3.3 or higher")
 
 
 try:
