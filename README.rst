@@ -24,6 +24,8 @@ from a list of arguments, using dict, then attribute lookup.
 
 Using native database binds also allows it to protect you against SQL injection attacks.
 
+supported:  Postgresql, sqlite3, Oracle, MySQL
+
 Simple **sqlite3** example::
 
     from pynoorm.binder import Binder
@@ -54,10 +56,9 @@ Oracle, with mutiple parameters?::
     >>> print(parameters)
     {'shipped': 1, 'custid': 'ACME'}
 
-Also supported:  Postgresql
 
 * Free software: MIT license
-* Documentation: (pending) https://pynoorm.readthedocs.org.
+* Documentation: https://pynoorm.readthedocs.org.
 
 Features
 --------

@@ -111,6 +111,7 @@ class Binder_pyformat(Binder):
     """
 
     paramstyle = "pyformat"
+    supports = "Postgresql"
 
 
     def format(self, tqry, *args):
