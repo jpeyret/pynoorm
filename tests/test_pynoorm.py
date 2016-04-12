@@ -48,7 +48,7 @@ class BasicArgument(object):
     pass
 
 
-class TestBinder(object):
+class BinderHelper(object):
     """the basic test functionality, able to work on both
        a live test (i.e. where the orders table has been created)
        and a dryrun (where the orders table is not created but
@@ -99,7 +99,7 @@ class TestBinder(object):
     def setUpClass(cls):
         try:
             cls.binder = Binder.factory(paramstyle=cls.paramstyle)
-        except AttributeError, e:
+        except AttributeError as e:
             if "paramstyle" in str(e):
                 logger.error("%s needs to have a paramstyle set" % (cls))
             raise
@@ -139,7 +139,7 @@ class TestBinder(object):
             if "%" in query_template:
                 try:
                     assert finder.li_key
-                except Exception, e:
+                except Exception as e:
                     # pdb.set_trace()
                     raise
 
@@ -372,7 +372,7 @@ class TestBinder(object):
         try:
             qry, sub = self.binder.format(self.tqry_ins, di_substit, locals())
             self.fail("should have thrown KeyError(ordernum)")
-        except KeyError, e:
+        except KeyError as e:
             self.assertTrue("ordernum" in str(e))
 
     def test_006_bind_from_globals_locals(self):
@@ -471,23 +471,23 @@ class LiveTest(object):
         cls.conn.close()
         cls.conn = cls.cursor = cls.binder = None
 
-    @staticmethod
-    def setup_class(cls):
+    @classmethod
+    def setUpClass(cls, subcls):
 
         try:
-            cls.cursor.execute(cls.qry_drop)
-        except cls.OperationalError:
+            subcls.cursor.execute(subcls.qry_drop)
+        except subcls.OperationalError:
             pass
 
         try:
-            cls.cursor.execute(cls.qry_create)
-        except Exception, e:
+            subcls.cursor.execute(subcls.qry_create)
+        except Exception as e:
             msg = "%s table creation exception %s. cursor:%s" \
-                % (cls, e, cls.cursor)
+                % (subcls, e, subcls.cursor)
             logger.error(msg)
             raise
 
-        cls.binder = Binder.factory(paramstyle=cls.paramstyle)
+        subcls.binder = Binder.factory(paramstyle=subcls.paramstyle)
 
     def test_002_bobbytable(self):
         custid = self.li_custid[1]
@@ -592,7 +592,7 @@ class LiveTest(object):
         self.assertEqual(old_ordernum + 1, new_ordernum)
 
 
-class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
+class Sqlite3(LiveTest, BinderHelper, unittest.TestCase):
     """test sqlite3"""
 
     qry_drop = """DROP TABLE orders;"""
@@ -616,10 +616,10 @@ class Sqlite3(LiveTest, TestBinder, unittest.TestCase):
         cls.cursor = cls.conn.cursor()
         cls.OperationalError = sqlite3.OperationalError
 
-        LiveTest.setup_class(cls)
+        LiveTest.setUpClass(cls)
 
 
-class DryRunTest_Oracle(TestBinder, unittest.TestCase):
+class DryRunTest_Oracle(BinderHelper, unittest.TestCase):
     """test Oracle handling
        currently not executing sql however, just formatting"""
 
@@ -627,14 +627,14 @@ class DryRunTest_Oracle(TestBinder, unittest.TestCase):
     type_sub = dict
 
 
-class DryRunTest_Postgresql(TestBinder, unittest.TestCase):
+class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):
     """test Postgresql handling
        currently not executing sql however, just formatting"""
 
     paramstyle = "pyformat"
     type_sub = dict
 
-class DryRunTest_MySQL(TestBinder, unittest.TestCase):
+class DryRunTest_MySQL(BinderHelper, unittest.TestCase):
     """test Postgresql handling
        currently not executing sql however, just formatting"""
 
