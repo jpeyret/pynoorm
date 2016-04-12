@@ -1,30 +1,19 @@
-# Config file for automatic testing at travis-ci.org
-# This file will be regenerated if you run travis_pypi_setup.py
-
 language: python
 python:
-  - "3.5"
-  - "3.4"
-  - "3.3"
   - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  # does not have headers provided, please ask https://launchpad.net/~pypy/+archive/ppa
+  # maintainers to fix their pypy-dev package.
   - "pypy"
-  - "pypy3"
+# command to install dependencies
+env:
+  - TOXENV=py27
 
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox
+install:
+  # - pip install .
+  # - pip install -r requirements_dev.txt
 
-# command to run tests, e.g. python setup.py test
-script: tox
-
-# After you create the Github repo and add it to Travis, run the
-# travis_pypi_setup.py script to finish PyPI deployment setup
-deploy:
-  provider: pypi
-  distributions: sdist bdist_wheel
-  user: jpeyret
-  password:
-    secure: PLEASE_REPLACE_ME
-  on:
-    tags: true
-    repo: jpeyret/pynoorm
-    condition: $TOXENV == py27
+# command to run tests
+script: nosetests
