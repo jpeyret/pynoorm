@@ -63,14 +63,6 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as r_file:
     assert description.strip()
     assert readme.strip()
 
-    # print ("*" * 80)
-    # print (description)
-    # print ("*" * 80)
-    # print (readme)
-    # print ("*" * 80)
-
-# sys.exit()
-
 
 setup(
     name='pynoorm',
@@ -96,7 +88,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
-        # 'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
 
         #3.x support pending...
