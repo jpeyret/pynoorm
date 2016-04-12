@@ -22,6 +22,8 @@ The Binder class
 A Binder abstracts differences in the underlying database's bind variable syntax and also grabs bind variables
 from a list of arguments, using dict, then attribute lookup.
 
+Using native database binds also allows it to protect you against SQL injection attacks.
+
 Simple **sqlite3** example::
 
     from pynoorm.binder import Binder
