@@ -11,3 +11,8 @@ History
 ------------------
 
 * Registered on PyPI
+
+0.2.0 (2016-04-12)
+------------------
+
+* Added support for Python 3.3+ and MySQL
