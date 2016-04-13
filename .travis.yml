@@ -17,3 +17,14 @@ install:
 
 # command to run tests
 script: nosetests
+
+deploy:
+  provider: pypi
+  distributions: sdist bdist_wheel
+  user: jpeyret
+  password:
+    secure: PLEASE_REPLACE_ME
+  on:
+    tags: true
+    repo: jpeyret/pynoorm
+    condition: $TOXENV == py27
