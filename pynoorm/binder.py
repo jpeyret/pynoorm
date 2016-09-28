@@ -96,6 +96,7 @@ class Binder(object):
                   https://www.python.org/dev/peps/pep-0249/#paramstyle
                   for details""" % \
                   (paramstyle, "/".join(list(cls._di_paramstyle.keys())))
+            raise ValueError(msg)
         except NotImplementedError:
             msg = "%s is not implemented yet" % (paramstyle)
             raise NotImplementedError(msg)
