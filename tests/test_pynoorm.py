@@ -69,6 +69,8 @@ class BinderHelper(object):
                                   from orders
                                   where custid = %(custid)s """
 
+
+
     tqry_customer_ordernum = """select *
                                 from orders
                                 where custid = %(custid)s
@@ -458,6 +460,27 @@ class BinderHelper(object):
         self.assertEqual(data["custid"], "ACME")
 
 
+    def test_010_list_substit(self):
+        """...check list substitutions"""
+        testname = "test_010_list_substit"
+
+
+        custid = self.li_custid[0]
+        self.custid = self.li_custid[1]
+
+        tqry = """select *
+                  from orders
+                  where custid = %(custid)s and status in (%(status_list)l)"""
+
+        #we should expect custid to come from self.li_custid[0]
+        qry, sub = self.binder.format(
+            tqry,
+            dict(custid=custid, status_list=['ABC', 'XYZ']),
+            self)
+
+
+        self.assertTrue("status_list_001" in qry)
+
 
 
 class LiveTest(object):
@@ -625,6 +648,14 @@ class DryRunTest_Oracle(BinderHelper, unittest.TestCase):
 
     paramstyle = "named"
     type_sub = dict
+
+class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
+    """test Oracle handling
+       currently not executing sql however, just formatting"""
+
+    paramstyle = "named"
+    type_sub = dict
+
 
 
 class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):

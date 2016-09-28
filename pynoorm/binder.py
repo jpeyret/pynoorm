@@ -341,6 +341,120 @@ class BinderNamed(Binder):
     """
 
 
+
+class ExperimentalBinderNamed(BinderNamed):
+    """supports: Oracle
+       query template and substitution management for Oracle
+       query changes from %(somevar)s to :somevar format
+    """
+
+    paramstyle = "named"
+    supports = "Oracle"
+
+    def format(self, tqry, *args):
+        """
+        looks up substitutions and sets them up in self.sub
+
+        but also transforms the query to Oracle named
+        format
+        "select * from foo where bar = %(somebar)s"
+        =>
+        "select * from foo where bar = :somebar "
+        {"somebar" : value-found-for-somebar}
+        """
+
+        self.sub = {}
+        self.li_arg = list(args)
+        self.tqry_o = self.tqry = tqry
+
+        qry = self.tqry % (self)
+        return qry, self.sub
+
+    __call__ = format
+
+    def __getitem__(self, key):
+        """
+        finds a substitution
+        but also transforms the variable in the query to Oracle named
+        format :foo
+        """
+        flag_list_surgery = False
+
+        t_qry_replace = ":%s"
+
+        if "list" in key:
+            import pdb
+            from lib.utils import ppp, debugObject
+            pdb.set_trace()
+
+        if "%%(%s)l" % (key) in self.tqry:
+            #major surgery needed
+            flag_list_surgery = True
+
+        #already seen so already in the substition dict
+        #replace the query's %(foo)s with :foo
+        if key in self.sub:
+            return t_qry_replace % (key)
+
+        for arg in self.li_arg:
+            try:
+
+                got = arg[key]
+                if not flag_list_surgery:
+                    self.sub[key] = got
+                    return t_qry_replace % (key)
+                else:
+                    pdb.set_trace()
+                    raise NotImplementedError
+                    
+            except (KeyError):
+                #we have __getitem__, just no key
+
+                try:
+                    #try getattr
+                    got = getattr(arg, key)
+                    if not flag_list_surgery:
+                        self.sub[key] = got
+                        return t_qry_replace % (key)
+                    else:
+                        pdb.set_trace()
+                        raise NotImplementedError
+                except AttributeError:
+                    continue
+
+            except (AttributeError, TypeError):
+                #no __getitem__, try getattr
+                try:
+                    got = getattr(arg, key)
+                    # self.sub[key] = got
+
+                    if not flag_list_surgery:
+                        self.sub[key] = got
+                        return t_qry_replace % (key)
+                    else:
+                        pdb.set_trace()
+                        raise NotImplementedError()
+                except AttributeError:
+                    continue
+
+        try:
+            raise KeyError(key)
+        except Exception as e:
+            raise
+
+    """
+    https://www.python.org/dev/peps/pep-0249/#paramstyle
+
+    paramstyle  Meaning
+
+    qmark       Question mark style, e.g. ...WHERE name=?
+    numeric     Numeric, positional style, e.g. ...WHERE name=:1
+    named       Named style, e.g. ...WHERE name=:name
+    format      ANSI C printf format codes, e.g. ...WHERE name=%s
+    pyformat    Python extended format codes, e.g. ...WHERE name=%(name)s
+    """
+
+
 class Binder_NotImplementedError(Binder):
     """not implemented yet"""
 
@@ -355,6 +469,8 @@ Binder._di_paramstyle["pyformat"] = Binder_pyformat
 Binder._di_paramstyle["named"] = BinderNamed
 Binder._di_paramstyle["qmark"] = BinderQmark
 Binder._di_paramstyle["format"] = BinderFormat
+
+Binder._di_paramstyle["experimentalnamed"] = ExperimentalBinderNamed
 
 #and these are not done yet
 Binder._di_paramstyle["numeric"] = Binder_NotImplementedError
