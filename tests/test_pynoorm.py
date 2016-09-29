@@ -618,9 +618,21 @@ class Sqlite3(LiveTest, BinderHelper, unittest.TestCase):
         LiveTest.setUpClass(cls)
 
 
+class Test_DryRunSQLServer(BinderHelper, unittest.TestCase):
+    """test MS SQL Server handling
+       test is currently not executing sql however, just formatting
+
+       """
+
+    paramstyle = "qmark"
+    type_sub = tuple
+
+
 class DryRunTest_Oracle(BinderHelper, unittest.TestCase):
     """test Oracle handling
-       currently not executing sql however, just formatting"""
+       currently not executing sql however, just formatting
+       used live?  Yes.
+       """
 
     paramstyle = "named"
     type_sub = dict
@@ -689,7 +701,6 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
 
     def test_011_list_substit_w_scalar(self):
         """...check list substitutions"""
-        # testname = "test_010_list_substit"
 
         self.assertEqual(
             self.binder.__class__.__name__,
@@ -724,7 +735,6 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
 
     def test_012_list_substit_multiple(self):
         """...check list substitutions"""
-        # testname = "test_010_list_substit"
 
         self.assertEqual(
             self.binder.__class__.__name__,
