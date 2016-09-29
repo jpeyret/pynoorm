@@ -52,6 +52,8 @@ Binder classes perform two functions through their format method
 
 """
 
+import re
+
 
 class Binder(object):
     """query template and substitution management - generic
@@ -76,6 +78,34 @@ class Binder(object):
             msg += " supports: %s" % (self.supports) 
 
         return msg
+
+
+    def loop_arg(self, key):
+
+        for arg in self.li_arg:
+            try:
+                got = arg[key]
+                return got
+            except (KeyError):
+                try:
+                    #try getattr
+                    got = getattr(arg, key)
+                    return got
+                except AttributeError:
+                    continue
+
+            except (AttributeError, TypeError):
+                #no __getitem__, try getattr
+                try:
+                    got = getattr(arg, key)
+                    return got
+                except AttributeError:
+                    continue
+
+        try:
+            raise KeyError(key)
+        except Exception as e:
+            raise
 
 
     @classmethod
@@ -351,6 +381,42 @@ class ExperimentalBinderNamed(BinderNamed):
     paramstyle = "named"
     supports = "Oracle"
 
+    re_pattern_listsubstition = re.compile("%\([a-zZ-Z0-9_]+\)l")
+
+
+
+    #the __ leading variable name makes it a highly unattractive non-list variable name
+    T_LIST_KEYNAME = "__%s_%03d"
+
+
+    def preprocess_listsubstitution(self, li_hit):
+        """ this will transform %(xxx)l into %(__xxx_000)s, %(__xxx_001)s """
+
+        di_list_sub = {}
+
+        self.li_arg.insert(0, di_list_sub)
+
+        for hit in li_hit:
+            key = hit[2:-2]
+            got = self.loop_arg(key)
+
+            if not isinstance(got, (list, set)):
+                self.tqry = self.tqry.replace(hit,  "%%(%s)s" % (key))
+            else:
+
+
+                li = []
+                for ix, val in enumerate(got):
+                    ikeyname = self.T_LIST_KEYNAME % (key, ix)
+                    ikeyname_sub = "%%(%s)s" % (ikeyname)
+                    self.sub[ikeyname] = val
+                    li.append(ikeyname_sub)
+
+                #now, replace the original substitution %(xxx)l with a %(__xxx_000)s, %(__xxx_001)s, ...
+                repval = ", ".join(li)
+                self.tqry = self.tqry.replace(hit, repval)
+
+
     def format(self, tqry, *args):
         """
         looks up substitutions and sets them up in self.sub
@@ -365,82 +431,22 @@ class ExperimentalBinderNamed(BinderNamed):
 
         self.sub = {}
         self.li_arg = list(args)
-        self.tqry_o = self.tqry = tqry
+        self.tqry = tqry
 
-        qry = self.tqry % (self)
+        #looking for "%(somevariable)l" variables - pay particular attention to the 'l' character
+        li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
+        if li_listsubstition:
+            self.preprocess_listsubstitution(li_listsubstition)
+
+        try:
+            qry = self.tqry % (self)
+        except Exception, e:
+            raise
+
         return qry, self.sub
 
     __call__ = format
 
-    def __getitem__(self, key):
-        """
-        finds a substitution
-        but also transforms the variable in the query to Oracle named
-        format :foo
-        """
-        flag_list_surgery = False
-
-        t_qry_replace = ":%s"
-
-        if "list" in key:
-            import pdb
-            from lib.utils import ppp, debugObject
-            pdb.set_trace()
-
-        if "%%(%s)l" % (key) in self.tqry:
-            #major surgery needed
-            flag_list_surgery = True
-
-        #already seen so already in the substition dict
-        #replace the query's %(foo)s with :foo
-        if key in self.sub:
-            return t_qry_replace % (key)
-
-        for arg in self.li_arg:
-            try:
-
-                got = arg[key]
-                if not flag_list_surgery:
-                    self.sub[key] = got
-                    return t_qry_replace % (key)
-                else:
-                    pdb.set_trace()
-                    raise NotImplementedError
-                    
-            except (KeyError):
-                #we have __getitem__, just no key
-
-                try:
-                    #try getattr
-                    got = getattr(arg, key)
-                    if not flag_list_surgery:
-                        self.sub[key] = got
-                        return t_qry_replace % (key)
-                    else:
-                        pdb.set_trace()
-                        raise NotImplementedError
-                except AttributeError:
-                    continue
-
-            except (AttributeError, TypeError):
-                #no __getitem__, try getattr
-                try:
-                    got = getattr(arg, key)
-                    # self.sub[key] = got
-
-                    if not flag_list_surgery:
-                        self.sub[key] = got
-                        return t_qry_replace % (key)
-                    else:
-                        pdb.set_trace()
-                        raise NotImplementedError()
-                except AttributeError:
-                    continue
-
-        try:
-            raise KeyError(key)
-        except Exception as e:
-            raise
 
     """
     https://www.python.org/dev/peps/pep-0249/#paramstyle
