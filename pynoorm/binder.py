@@ -65,9 +65,9 @@ class Binder(object):
     def format(self, tqry, *args):
         """
         :param tqry: query with optional substitution variables
-                     Python style i.e. 
+                     Python style i.e.
                      select * from orders where custid = %(custid)s
-        :param *args: zero or more arguments that will be check 
+        :param *args: zero or more arguments that will be checked
                       left-to-right, argument[<key>], getattr(argument,<key>)
         """
 
@@ -75,12 +75,12 @@ class Binder(object):
         msg = "%s paramstyle=%s" % (self.__class__.__name__, self.paramstyle)
 
         if hasattr(self, "supports"):
-            msg += " supports: %s" % (self.supports) 
+            msg += " supports: %s" % (self.supports)
 
         return msg
 
-
     def loop_arg(self, key):
+        """generic way to look for a key in the arg list"""
 
         for arg in self.li_arg:
             try:
@@ -107,7 +107,6 @@ class Binder(object):
         except Exception as e:
             raise
 
-
     @classmethod
     def factory(cls, paramstyle):
         """
@@ -133,14 +132,15 @@ class Binder(object):
 
     _di_paramstyle = {}
 
-
+    #the regular expression pattern that looks for list type binds
     re_pattern_listsubstition = re.compile("%\([a-zZ-Z0-9_]+\)l")
 
-
-
-    #the __ leading variable name makes it a highly unattractive non-list variable name
+    #leading '__' variable name makes name clashes more unlikely
     T_LIST_KEYNAME = "__%s_%03d"
 
+    def _pre_process(self):
+        """do nothing for now - intended to support list substitutions"""
+        pass
 
     def preprocess_listsubstitution(self, li_hit):
         """ this will transform %(xxx)l into %(__xxx_000)s, %(__xxx_001)s """
@@ -154,9 +154,8 @@ class Binder(object):
             got = self.loop_arg(key)
 
             if not isinstance(got, (list, set)):
-                self.tqry = self.tqry.replace(hit,  "%%(%s)s" % (key))
+                self.tqry = self.tqry.replace(hit, hit[:-1] + "s")
             else:
-
 
                 li = []
                 for ix, val in enumerate(got):
@@ -165,7 +164,8 @@ class Binder(object):
                     self.sub[ikeyname] = val
                     li.append(ikeyname_sub)
 
-                #now, replace the original substitution %(xxx)l with a %(__xxx_000)s, %(__xxx_001)s, ...
+                #replace the original bind %(xxx)l with
+                #%(__xxx_000)s, %(__xxx_001)s, ...
                 repval = ", ".join(li)
                 self.tqry = self.tqry.replace(hit, repval)
 
@@ -179,7 +179,6 @@ class Binder_pyformat(Binder):
 
     paramstyle = "pyformat"
     supports = "Postgresql"
-
 
     def format(self, tqry, *args):
         """
@@ -407,7 +406,6 @@ class BinderNamed(Binder):
     """
 
 
-
 class ExperimentalBinderNamed(BinderNamed):
     """supports: Oracle
        query template and substitution management for Oracle
@@ -417,7 +415,10 @@ class ExperimentalBinderNamed(BinderNamed):
     paramstyle = "named"
     supports = "Oracle"
 
-
+    def _pre_process(self):
+        li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
+        if li_listsubstition:
+            self.preprocess_listsubstitution(li_listsubstition)
 
     def format(self, tqry, *args):
         """
@@ -435,10 +436,7 @@ class ExperimentalBinderNamed(BinderNamed):
         self.li_arg = list(args)
         self.tqry = tqry
 
-        #looking for "%(somevariable)l" variables - pay particular attention to the 'l' character
-        li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
-        if li_listsubstition:
-            self.preprocess_listsubstitution(li_listsubstition)
+        self._pre_process()
 
         try:
             qry = self.tqry % (self)
@@ -448,7 +446,6 @@ class ExperimentalBinderNamed(BinderNamed):
         return qry, self.sub
 
     __call__ = format
-
 
     """
     https://www.python.org/dev/peps/pep-0249/#paramstyle
