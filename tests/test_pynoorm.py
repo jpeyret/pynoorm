@@ -69,8 +69,6 @@ class BinderHelper(object):
                                   from orders
                                   where custid = %(custid)s """
 
-
-
     tqry_customer_ordernum = """select *
                                 from orders
                                 where custid = %(custid)s
@@ -429,17 +427,17 @@ class BinderHelper(object):
         self.assertTrue("""or 'a' = 'a'""" in qry)
         logger.info(qry)
 
-
     def test_009_like(self):
         """...check like-based searches"""
         testname = "test_009_like"
 
         tqry = """select * from orders where custid like %(crit_custid)s """
 
-        crit_custid="AC%"
-        qry, parameters = self.binder.format(tqry, dict(crit_custid=crit_custid), self,)
-        # self.assertEqual(qry, tqry_safe)
-
+        crit_custid = "AC%"
+        qry, parameters = self.binder.format(
+            tqry,
+            dict(crit_custid=crit_custid),
+            self,)
 
         if self.type_sub == tuple:
             self.assertTrue(crit_custid in parameters)
@@ -459,9 +457,6 @@ class BinderHelper(object):
 
         #column type should be respected
         self.assertEqual(data["custid"], "ACME")
-
-
-
 
 
 class LiveTest(object):
@@ -646,7 +641,9 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
         """...check list substitutions"""
         testname = "test_010_list_substit"
 
-        self.assertEqual(self.binder.__class__.__name__, "ExperimentalBinderNamed")
+        self.assertEqual(
+            self.binder.__class__.__name__,
+            "ExperimentalBinderNamed")
 
         custid = self.li_custid[0]
         self.custid = self.li_custid[1]
@@ -673,7 +670,7 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
 
         s_exp = set()
 
-        self.assertEqual(1+len(li), len(sub))
+        self.assertEqual(1 + len(li), len(sub))
 
         for ix, value in enumerate(li):
             keyname = "__status_list_%03d" % ix
@@ -690,12 +687,13 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
 
         self.assertEqual(s_exp, s_bind)
 
-
     def test_011_list_substit_w_scalar(self):
         """...check list substitutions"""
         # testname = "test_010_list_substit"
 
-        self.assertEqual(self.binder.__class__.__name__, "ExperimentalBinderNamed")
+        self.assertEqual(
+            self.binder.__class__.__name__,
+            "ExperimentalBinderNamed")
 
         custid = self.li_custid[0]
         self.custid = self.li_custid[1]
@@ -728,14 +726,16 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
         """...check list substitutions"""
         # testname = "test_010_list_substit"
 
-        self.assertEqual(self.binder.__class__.__name__, "ExperimentalBinderNamed")
+        self.assertEqual(
+            self.binder.__class__.__name__,
+            "ExperimentalBinderNamed")
 
         custid = self.li_custid[0]
         self.custid = self.li_custid[1]
 
         tqry = """select *
                   from orders
-                  where custid = %(custid)s 
+                  where custid = %(custid)s
                   and status in (%(status_list)l)
                   and delay_reason in (%(reasons)l)
 
@@ -791,11 +791,12 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
                 raise
 
             s_exp.add(keyname)
-        s_bind = set([k for k in sub.keys() if "status_list" in k]) | set([k for k in sub.keys() if "reasons" in k])
+        s_bind = (
+            set([k for k in sub.keys() if "status_list" in k]) |
+            set([k for k in sub.keys() if "reasons" in k])
+            )
 
         self.assertEqual(s_exp, s_bind)
-
-
 
 
 class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):
@@ -804,7 +805,6 @@ class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):
 
     paramstyle = "pyformat"
     type_sub = dict
-
 
 
 class DryRunTest_MySQL(BinderHelper, unittest.TestCase):
