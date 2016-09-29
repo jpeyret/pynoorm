@@ -79,7 +79,7 @@ class Binder(object):
 
         return msg
 
-    def loop_arg(self, key):
+    def _get_from_args(self, key):
         """generic way to look for a key in the arg list"""
 
         for arg in self.li_arg:
@@ -151,7 +151,7 @@ class Binder(object):
 
         for hit in li_hit:
             key = hit[2:-2]
-            got = self.loop_arg(key)
+            got = self._get_from_args(key)
 
             if not isinstance(got, (list, set)):
                 self.tqry = self.tqry.replace(hit, hit[:-1] + "s")
@@ -410,6 +410,7 @@ class ExperimentalBinderNamed(BinderNamed):
     """supports: Oracle
        query template and substitution management for Oracle
        query changes from %(somevar)s to :somevar format
+       list-based substitutions:  %(somelist)l :__somelist_000, :__somelist_001...
     """
 
     paramstyle = "named"
@@ -446,6 +447,26 @@ class ExperimentalBinderNamed(BinderNamed):
         return qry, self.sub
 
     __call__ = format
+
+
+    def __getitem__(self, key):
+        """
+        finds a substitution
+        but also transforms the variable in the query to Oracle named
+        format :foo
+        """
+
+        t_qry_replace = ":%s"
+
+        #already seen so already in the substition dict
+        #replace the query's %(foo)s with :foo
+        if key in self.sub:
+            return t_qry_replace % (key)
+
+        got = self._get_from_args(key)
+        self.sub[key] = got
+        return t_qry_replace % (key)
+
 
     """
     https://www.python.org/dev/peps/pep-0249/#paramstyle
