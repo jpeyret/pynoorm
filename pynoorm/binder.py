@@ -134,6 +134,42 @@ class Binder(object):
     _di_paramstyle = {}
 
 
+    re_pattern_listsubstition = re.compile("%\([a-zZ-Z0-9_]+\)l")
+
+
+
+    #the __ leading variable name makes it a highly unattractive non-list variable name
+    T_LIST_KEYNAME = "__%s_%03d"
+
+
+    def preprocess_listsubstitution(self, li_hit):
+        """ this will transform %(xxx)l into %(__xxx_000)s, %(__xxx_001)s """
+
+        di_list_sub = {}
+
+        self.li_arg.insert(0, di_list_sub)
+
+        for hit in li_hit:
+            key = hit[2:-2]
+            got = self.loop_arg(key)
+
+            if not isinstance(got, (list, set)):
+                self.tqry = self.tqry.replace(hit,  "%%(%s)s" % (key))
+            else:
+
+
+                li = []
+                for ix, val in enumerate(got):
+                    ikeyname = self.T_LIST_KEYNAME % (key, ix)
+                    ikeyname_sub = "%%(%s)s" % (ikeyname)
+                    self.sub[ikeyname] = val
+                    li.append(ikeyname_sub)
+
+                #now, replace the original substitution %(xxx)l with a %(__xxx_000)s, %(__xxx_001)s, ...
+                repval = ", ".join(li)
+                self.tqry = self.tqry.replace(hit, repval)
+
+
 class Binder_pyformat(Binder):
     """support Postgresql
        query template and substitution management for postgresql
@@ -381,40 +417,6 @@ class ExperimentalBinderNamed(BinderNamed):
     paramstyle = "named"
     supports = "Oracle"
 
-    re_pattern_listsubstition = re.compile("%\([a-zZ-Z0-9_]+\)l")
-
-
-
-    #the __ leading variable name makes it a highly unattractive non-list variable name
-    T_LIST_KEYNAME = "__%s_%03d"
-
-
-    def preprocess_listsubstitution(self, li_hit):
-        """ this will transform %(xxx)l into %(__xxx_000)s, %(__xxx_001)s """
-
-        di_list_sub = {}
-
-        self.li_arg.insert(0, di_list_sub)
-
-        for hit in li_hit:
-            key = hit[2:-2]
-            got = self.loop_arg(key)
-
-            if not isinstance(got, (list, set)):
-                self.tqry = self.tqry.replace(hit,  "%%(%s)s" % (key))
-            else:
-
-
-                li = []
-                for ix, val in enumerate(got):
-                    ikeyname = self.T_LIST_KEYNAME % (key, ix)
-                    ikeyname_sub = "%%(%s)s" % (ikeyname)
-                    self.sub[ikeyname] = val
-                    li.append(ikeyname_sub)
-
-                #now, replace the original substitution %(xxx)l with a %(__xxx_000)s, %(__xxx_001)s, ...
-                repval = ", ".join(li)
-                self.tqry = self.tqry.replace(hit, repval)
 
 
     def format(self, tqry, *args):
