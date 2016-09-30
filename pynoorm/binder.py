@@ -180,6 +180,12 @@ class Binder_pyformat(Binder):
     paramstyle = "pyformat"
     supports = "Postgresql"
 
+
+    def _pre_process(self):
+        li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
+        if li_listsubstition:
+            self.preprocess_listsubstitution(li_listsubstition)
+
     def format(self, tqry, *args):
         """
         looks up substitutions and sets them up in dictionary self.sub
@@ -192,13 +198,39 @@ class Binder_pyformat(Binder):
         {"somebar" : value-found-for-somebar}
         """
 
+        """
         self.sub = {}
         self.li_arg = list(args)
+        self.tqry = tqry
 
-        tqry % (self)
+        self._pre_process()
+
+        try:
+            qry = self.tqry % (self)
+        except Exception, e:
+            raise
+
+        return qry, self.sub
+
+
+        """
+
+
+
+        self.sub = {}
+        self.li_arg = list(args)
+        self.tqry = tqry
+
+        self._pre_process()
+
+        try:
+            self.tqry % (self)
+        except Exception, e:
+            raise
+
         #Postgresql query format stays as %(foo)s
         #so we just return the original query
-        return tqry, self.sub
+        return self.tqry, self.sub
 
     __call__ = format
 
@@ -206,39 +238,17 @@ class Binder_pyformat(Binder):
         if key in self.sub:
             return None
 
-        for arg in self.li_arg:
-            try:
+        # got = getattr(arg, key)
+        # self.sub[key] = got
+        # return None
 
-                got = arg[key]
-                self.sub[key] = got
-                #Postgresql query format stays as %(foo)s
-                return None
-            except (KeyError):
-                #we have __getitem__, just no key
-                try:
-                    #try getattr
-                    got = getattr(arg, key)
-                    self.sub[key] = got
-                    return None
-                except AttributeError:
-                    continue
-
-            except (AttributeError, TypeError):
-                try:
-                    got = getattr(arg, key)
-                    self.sub[key] = got
-                    return None
-                except AttributeError:
-                    continue
-
-        try:
-            raise KeyError(key)
-        except Exception as e:
-            raise
-
+        got = self._get_from_args(key)
+        self.sub[key] = got
+        return None
+        
 
 class BinderQmark(Binder):
-    """ supports:  sqlite3
+    """ supports:  sqlite3, SQL Server
         query template and substitution management for sqlite3
         query changes from %(somevar)s to ?
 
@@ -254,6 +264,11 @@ class BinderQmark(Binder):
     def format(self, tqry, *args):
         """
         looks up substitutions and sets them up in self.sub
+
+        Note:
+            Assuming both will be happy with a tuple.
+            Might be one SQL Server needs a list instead.
+
         """
 
         self.sub = []
