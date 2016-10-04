@@ -138,9 +138,14 @@ class Binder(object):
     #leading '__' variable name makes name clashes more unlikely
     T_LIST_KEYNAME = "__%s_%03d"
 
+    # def _pre_process(self):
+    #     """do nothing for now - intended to support list substitutions"""
+    #     pass
+
     def _pre_process(self):
-        """do nothing for now - intended to support list substitutions"""
-        pass
+        li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
+        if li_listsubstition:
+            self.preprocess_listsubstitution(li_listsubstition)
 
     def preprocess_listsubstitution(self, li_hit):
         """ this will transform %(xxx)l into %(__xxx_000)s, %(__xxx_001)s """
@@ -161,7 +166,7 @@ class Binder(object):
                 for ix, val in enumerate(got):
                     ikeyname = self.T_LIST_KEYNAME % (key, ix)
                     ikeyname_sub = "%%(%s)s" % (ikeyname)
-                    self.sub[ikeyname] = val
+                    di_list_sub[ikeyname] = val
                     li.append(ikeyname_sub)
 
                 #replace the original bind %(xxx)l with
@@ -180,7 +185,6 @@ class Binder_pyformat(Binder):
     paramstyle = "pyformat"
     supports = "Postgresql"
 
-
     def _pre_process(self):
         li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
         if li_listsubstition:
@@ -198,25 +202,6 @@ class Binder_pyformat(Binder):
         {"somebar" : value-found-for-somebar}
         """
 
-        """
-        self.sub = {}
-        self.li_arg = list(args)
-        self.tqry = tqry
-
-        self._pre_process()
-
-        try:
-            qry = self.tqry % (self)
-        except Exception, e:
-            raise
-
-        return qry, self.sub
-
-
-        """
-
-
-
         self.sub = {}
         self.li_arg = list(args)
         self.tqry = tqry
@@ -230,6 +215,7 @@ class Binder_pyformat(Binder):
 
         #Postgresql query format stays as %(foo)s
         #so we just return the original query
+        #(which _pre_process may have altered)
         return self.tqry, self.sub
 
     __call__ = format
@@ -238,14 +224,10 @@ class Binder_pyformat(Binder):
         if key in self.sub:
             return None
 
-        # got = getattr(arg, key)
-        # self.sub[key] = got
-        # return None
-
         got = self._get_from_args(key)
         self.sub[key] = got
         return None
-        
+
 
 class BinderQmark(Binder):
     """ supports:  sqlite3, SQL Server
@@ -259,7 +241,8 @@ class BinderQmark(Binder):
     """
 
     paramstyle = "qmark"
-    supports = "sqlite3"
+    supports = "sqlite3, mssql"
+    qry_replace = "?"
 
     def format(self, tqry, *args):
         """
@@ -270,15 +253,22 @@ class BinderQmark(Binder):
             Might be one SQL Server needs a list instead.
 
         """
-
+        self.tqry = tqry
+        self._di_sub = {}
         self.sub = []
         self.li_arg = list(args)
-        qry = tqry % (self)
+
+        self._pre_process()
+
+        try:
+            qry = self.tqry % (self)
+        except Exception, e:
+            raise
+
         return qry, tuple(self.sub)
 
-    __call__ = format
 
-    qry_replace = "?"
+    __call__ = format
 
     def __getitem__(self, key):
         """
@@ -288,32 +278,13 @@ class BinderQmark(Binder):
 
         qry_replace = self.qry_replace
 
-        for arg in self.li_arg:
-            try:
+        try:
+            got = self._di_sub[key]
+        except KeyError:
+            got = self._di_sub[key] = self._get_from_args(key)
 
-                got = arg[key]
-                self.sub.append(got)
-                return qry_replace
-            except (KeyError):
-                #OK, we have __getitem__, just doesn't have key
-                try:
-                    #try getattr
-                    got = getattr(arg, key)
-                    self.sub.append(got)
-                    return qry_replace
-                except AttributeError:
-                    continue
-
-            except (AttributeError, TypeError):
-                #no getitem, try getattr
-                try:
-                    got = getattr(arg, key)
-                    self.sub.append(got)
-                    return qry_replace
-                except AttributeError:
-                    continue
-        else:
-            raise KeyError(key)
+        self.sub.append(got)
+        return qry_replace
 
 
 class BinderFormat(BinderQmark):
@@ -330,7 +301,6 @@ class BinderFormat(BinderQmark):
 
     paramstyle = "format"
     supports = "MySQL"
-
     qry_replace = "%s"
 
 
@@ -338,103 +308,13 @@ class BinderNamed(Binder):
     """supports: Oracle
        query template and substitution management for Oracle
        query changes from %(somevar)s to :somevar format
+       list-based substitutions:
+           %(somelist)l :__somelist_000, :__somelist_001...
     """
 
     paramstyle = "named"
     supports = "Oracle"
-
-    def format(self, tqry, *args):
-        """
-        looks up substitutions and sets them up in self.sub
-
-        but also transforms the query to Oracle named
-        format
-        "select * from foo where bar = %(somebar)s"
-        =>
-        "select * from foo where bar = :somebar "
-        {"somebar" : value-found-for-somebar}
-        """
-
-        self.sub = {}
-        self.li_arg = list(args)
-        qry = tqry % (self)
-        return qry, self.sub
-
-    __call__ = format
-
-    def __getitem__(self, key):
-        """
-        finds a substitution
-        but also transforms the variable in the query to Oracle named
-        format :foo
-        """
-
-        t_qry_replace = ":%s"
-
-        #already seen so already in the substition dict
-        #replace the query's %(foo)s with :foo
-        if key in self.sub:
-            return t_qry_replace % (key)
-
-        for arg in self.li_arg:
-            try:
-
-                got = arg[key]
-                self.sub[key] = got
-                return t_qry_replace % (key)
-            except (KeyError):
-                #we have __getitem__, just no key
-
-                try:
-                    #try getattr
-                    got = getattr(arg, key)
-                    self.sub[key] = got
-                    return t_qry_replace % (key)
-                except AttributeError:
-                    continue
-
-            except (AttributeError, TypeError):
-                #no __getitem__, try getattr
-                try:
-                    got = getattr(arg, key)
-                    self.sub[key] = got
-
-                    return t_qry_replace % (key)
-                except AttributeError:
-                    continue
-
-        try:
-            raise KeyError(key)
-        except Exception as e:
-            raise
-
-    """
-    https://www.python.org/dev/peps/pep-0249/#paramstyle
-
-    paramstyle  Meaning
-
-    qmark       Question mark style, e.g. ...WHERE name=?
-    numeric     Numeric, positional style, e.g. ...WHERE name=:1
-    named       Named style, e.g. ...WHERE name=:name
-    format      ANSI C printf format codes, e.g. ...WHERE name=%s
-    pyformat    Python extended format codes, e.g. ...WHERE name=%(name)s
-    """
-
-
-class ExperimentalBinderNamed(BinderNamed):
-    """supports: Oracle
-       query template and substitution management for Oracle
-       query changes from %(somevar)s to :somevar format
-       list-based substitutions:  %(somelist)l :__somelist_000, :__somelist_001...
-    """
-
-    paramstyle = "named"
-    supports = "Oracle"
-
-    def _pre_process(self):
-        li_listsubstition = self.re_pattern_listsubstition.findall(self.tqry)
-        if li_listsubstition:
-            self.preprocess_listsubstitution(li_listsubstition)
+    t_qry_replace = ":%s"
 
     def format(self, tqry, *args):
         """
@@ -463,7 +343,6 @@ class ExperimentalBinderNamed(BinderNamed):
 
     __call__ = format
 
-
     def __getitem__(self, key):
         """
         finds a substitution
@@ -471,29 +350,28 @@ class ExperimentalBinderNamed(BinderNamed):
         format :foo
         """
 
-        t_qry_replace = ":%s"
-
         #already seen so already in the substition dict
         #replace the query's %(foo)s with :foo
         if key in self.sub:
-            return t_qry_replace % (key)
+            return self.t_qry_replace % (key)
 
         got = self._get_from_args(key)
         self.sub[key] = got
-        return t_qry_replace % (key)
-
+        return self.t_qry_replace % (key)
 
     """
     https://www.python.org/dev/peps/pep-0249/#paramstyle
 
     paramstyle  Meaning
 
-    qmark       Question mark style, e.g. ...WHERE name=?
+    qmark       Question mark style, e.g. ...WHERE name=?   sequence
     numeric     Numeric, positional style, e.g. ...WHERE name=:1
     named       Named style, e.g. ...WHERE name=:name
     format      ANSI C printf format codes, e.g. ...WHERE name=%s
     pyformat    Python extended format codes, e.g. ...WHERE name=%(name)s
     """
+
+ExperimentalBinderNamed = BinderNamed
 
 
 class Binder_NotImplementedError(Binder):

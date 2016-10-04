@@ -458,6 +458,186 @@ class BinderHelper(object):
         #column type should be respected
         self.assertEqual(data["custid"], "ACME")
 
+    def test_010_list_substit(self):
+        """...check list substitutions"""
+        testname = "test_010_list_substit"
+
+        # self.assertEqual(
+        #     self.binder.__class__.__name__,
+        #     "ExperimentalBinderNamed")
+
+        custid = self.li_custid[0]
+        self.custid = self.li_custid[1]
+
+        tqry = """select *
+                  from orders
+                  where custid = %(custid)s and status in (%(status_list)l)"""
+
+        #where to count in the sequence-based subs
+        offset_status_list = 1
+
+        ABC = 'ABC'
+
+        li = [ABC, 'XYZ']
+        #we should expect custid to come from self.li_custid[0]
+        try:
+            qry, sub = self.binder.format(
+                tqry,
+                dict(custid=custid, status_list=li),
+                self)
+        except Exception, e:
+            raise
+
+        if self.type_sub == dict:
+            self.assertTrue("__status_list_001" in qry)
+            self.assertEqual(sub.get("__status_list_000"), "ABC")
+
+        s_exp = set()
+
+        self.assertEqual(1 + len(li), len(sub))
+
+        for ix, value in enumerate(li):
+            keyname = "__status_list_%03d" % ix
+            try:
+                if self.type_sub == dict:
+                    self.assertEqual(value, sub.get(keyname))
+                if self.type_sub == tuple:
+                    self.assertEqual(value, sub[ix+offset_status_list])
+            except AssertionError:
+                print ("keyname:%s:" % (keyname))
+                print ("sub:%s" % str(sub))
+                raise
+
+            s_exp.add(keyname)
+
+        if self.type_sub == dict:
+            s_bind = set([k for k in sub.keys() if "status_list" in k])
+            self.assertEqual(s_exp, s_bind)
+
+    def test_011_list_substit_w_scalar(self):
+        """...check list substitutions"""
+
+        # self.assertEqual(
+        #     self.binder.__class__.__name__,
+        #     "ExperimentalBinderNamed")
+
+        custid = self.li_custid[0]
+        self.custid = self.li_custid[1]
+
+        tqry = """select *
+                  from orders
+                  where custid = %(custid)s and status in (%(status_list)l)"""
+
+        ABC = 'ABC'
+
+        li = 'XYZ'
+        #we should expect custid to come from self.li_custid[0]
+        try:
+            qry, sub = self.binder.format(
+                tqry,
+                dict(custid=custid, status_list=li),
+                self)
+        except Exception, e:
+            raise
+
+        if self.type_sub == dict:
+            self.assertTrue("status_list" in qry)
+            self.assertEqual(sub.get("status_list"), "XYZ")
+
+        # s_exp = set()
+
+        self.assertEqual(2, len(sub))
+
+
+    def test_012_list_substit_multiple(self):
+        """...check list substitutions"""
+
+        # self.assertEqual(
+        #     self.binder.__class__.__name__,
+        #     "ExperimentalBinderNamed")
+
+        custid = self.li_custid[0]
+        self.custid = self.li_custid[1]
+
+        tqry = """select *
+                  from orders
+                  where custid = %(custid)s
+                  and status in (%(status_list)l)
+                  and delay_reason in (%(reasons)l)
+                  """
+
+        ABC = 'ABC'
+
+        NOTAVAIL = "NOTAVAIL"
+        DISCONTINUED = "DISCONTINUED"
+        self.reasons = [NOTAVAIL, DISCONTINUED]
+
+        ABC, XYZ = "ABC", "XYZ"
+        status_list = [ABC, XYZ]
+
+        offset_status_list = 1
+        offset_reason_list = offset_status_list + len(status_list)
+
+
+        #we should expect custid to come from self.li_custid[0]
+        try:
+            qry, sub = self.binder.format(
+                tqry,
+                dict(custid=custid, status_list=status_list),
+                self)
+        except Exception, e:
+            raise
+
+        s_exp = set()
+
+        if self.type_sub == dict:
+            self.assertTrue("__status_list_001" in qry)
+            self.assertEqual(sub.get("__status_list_000"), "ABC")
+            self.assertTrue("__reasons_001" in qry)
+            self.assertEqual(sub.get("__reasons_000"), NOTAVAIL)
+
+        s_exp = set()
+
+        for ix, value in enumerate(status_list):
+            keyname = "__status_list_%03d" % ix
+            try:
+                if self.type_sub == dict:
+                    self.assertEqual(value, sub.get(keyname))
+                if self.type_sub == tuple:
+                    self.assertEqual(value, sub[ix + offset_status_list])
+
+
+            except AssertionError:
+                print ("keyname:%s:" % (keyname))
+                print ("sub:%s" % (sub))
+                raise
+
+            s_exp.add(keyname)
+
+        for ix, value in enumerate(self.reasons):
+            keyname = "__reasons_%03d" % ix
+            try:
+                if self.type_sub == dict:
+                    self.assertEqual(value, sub.get(keyname))
+                if self.type_sub == tuple:
+                    self.assertEqual(value, sub[ix + offset_reason_list])
+
+
+            except AssertionError:
+                print ("keyname:%s:" % (keyname))
+                print ("sub:%s" % (sub))
+                raise
+
+            s_exp.add(keyname)
+
+        if self.type_sub == dict:
+            s_bind = (
+                set([k for k in sub.keys() if "status_list" in k]) |
+                set([k for k in sub.keys() if "reasons" in k])
+                )
+
+            self.assertEqual(s_exp, s_bind)
+
 
 class LiveTest(object):
 
@@ -649,164 +829,8 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
 
     # ordernum = 0
 
-    def test_010_list_substit(self):
-        """...check list substitutions"""
-        testname = "test_010_list_substit"
 
-        self.assertEqual(
-            self.binder.__class__.__name__,
-            "ExperimentalBinderNamed")
 
-        custid = self.li_custid[0]
-        self.custid = self.li_custid[1]
-
-        tqry = """select *
-                  from orders
-                  where custid = %(custid)s and status in (%(status_list)l)"""
-
-        ABC = 'ABC'
-
-        li = [ABC, 'XYZ']
-        #we should expect custid to come from self.li_custid[0]
-        try:
-            qry, sub = self.binder.format(
-                tqry,
-                dict(custid=custid, status_list=li),
-                self)
-        except Exception, e:
-            raise
-
-        self.assertTrue("__status_list_001" in qry)
-
-        self.assertEqual(sub.get("__status_list_000"), "ABC")
-
-        s_exp = set()
-
-        self.assertEqual(1 + len(li), len(sub))
-
-        for ix, value in enumerate(li):
-            keyname = "__status_list_%03d" % ix
-            try:
-                self.assertEqual(value, sub.get(keyname))
-            except AssertionError:
-                print ("keyname:%s:" % (keyname))
-                print ("sub:%s" % (sub))
-                raise
-
-            s_exp.add(keyname)
-
-        s_bind = set([k for k in sub.keys() if "status_list" in k])
-
-        self.assertEqual(s_exp, s_bind)
-
-    def test_011_list_substit_w_scalar(self):
-        """...check list substitutions"""
-
-        self.assertEqual(
-            self.binder.__class__.__name__,
-            "ExperimentalBinderNamed")
-
-        custid = self.li_custid[0]
-        self.custid = self.li_custid[1]
-
-        tqry = """select *
-                  from orders
-                  where custid = %(custid)s and status in (%(status_list)l)"""
-
-        ABC = 'ABC'
-
-        li = 'XYZ'
-        #we should expect custid to come from self.li_custid[0]
-        try:
-            qry, sub = self.binder.format(
-                tqry,
-                dict(custid=custid, status_list=li),
-                self)
-        except Exception, e:
-            raise
-
-        self.assertTrue("(:status_list)" in qry)
-
-        self.assertEqual(sub.get("status_list"), "XYZ")
-
-        s_exp = set()
-
-        self.assertEqual(2, len(sub))
-
-    def test_012_list_substit_multiple(self):
-        """...check list substitutions"""
-
-        self.assertEqual(
-            self.binder.__class__.__name__,
-            "ExperimentalBinderNamed")
-
-        custid = self.li_custid[0]
-        self.custid = self.li_custid[1]
-
-        tqry = """select *
-                  from orders
-                  where custid = %(custid)s
-                  and status in (%(status_list)l)
-                  and delay_reason in (%(reasons)l)
-
-                  """
-
-        ABC = 'ABC'
-
-        NOTAVAIL = "NOTAVAIL"
-        DISCONTINUED = "DISCONTINUED"
-        self.reasons = [NOTAVAIL, DISCONTINUED]
-
-        ABC, XYZ = "ABC", "XYZ"
-        li = [ABC, XYZ]
-        #we should expect custid to come from self.li_custid[0]
-        try:
-            qry, sub = self.binder.format(
-                tqry,
-                dict(custid=custid, status_list=li),
-                self)
-        except Exception, e:
-            raise
-
-        s_exp = set()
-
-        self.assertTrue("__status_list_001" in qry)
-
-        self.assertEqual(sub.get("__status_list_000"), "ABC")
-
-        self.assertTrue("__reasons_001" in qry)
-
-        self.assertEqual(sub.get("__reasons_000"), NOTAVAIL)
-
-        s_exp = set()
-
-        for ix, value in enumerate(li):
-            keyname = "__status_list_%03d" % ix
-            try:
-                self.assertEqual(value, sub.get(keyname))
-            except AssertionError:
-                print ("keyname:%s:" % (keyname))
-                print ("sub:%s" % (sub))
-                raise
-
-            s_exp.add(keyname)
-
-        for ix, value in enumerate(self.reasons):
-            keyname = "__reasons_%03d" % ix
-            try:
-                self.assertEqual(value, sub.get(keyname))
-            except AssertionError:
-                print ("keyname:%s:" % (keyname))
-                print ("sub:%s" % (sub))
-                raise
-
-            s_exp.add(keyname)
-        s_bind = (
-            set([k for k in sub.keys() if "status_list" in k]) |
-            set([k for k in sub.keys() if "reasons" in k])
-            )
-
-        self.assertEqual(s_exp, s_bind)
 
 
 class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):
