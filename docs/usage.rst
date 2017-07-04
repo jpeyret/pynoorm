@@ -7,7 +7,7 @@ Usage
 The Binder Class
 ----------------
 
-A binder is used to abstract differences in the underlying database's bind variable syntax (see PEP249_).
+A Binder is used to abstract differences in the underlying database's bind variable syntax (see PEP249_).
 
 Calling `Binder.format(query_template, *args)` does the following:
 
@@ -71,14 +71,13 @@ You can now execute on an **sqlite3** cursor::
 
     cursor.execute(query, parameters)
 
-Keeping all others things equal, switching to **Oracle** just requires switching paramstyle when you create the binder::
+Switching to **Oracle** just requires switching paramstyle when you create the binder::
 
     import cx_Oracle
     binder = Binder.factory(cx_Oracle.paramstyle)
 
     #this would have worked just as well
     #binder = Binder.factory("named")
-
 
 	>>> pprint(binder)
 	BinderNamed paramstyle=named supports: Oracle
