@@ -9,7 +9,7 @@ Tests for `pynoorm` module.
 
 import unittest
 
-from pynoorm.binder import Binder
+from pynoorm.binder import Binder, PARAMSTYLE_SQLSERVER
 
 import logging
 logging.basicConfig(level=logging.WARNING)
@@ -97,12 +97,24 @@ class BinderHelper(object):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            cls.binder = Binder.factory(paramstyle=cls.paramstyle)
-        except AttributeError as e:
-            if "paramstyle" in str(e):
-                logger.error("%s needs to have a paramstyle set" % (cls))
-            raise
+
+        if hasattr(cls, "case_insensitive"):
+
+            try:
+                cls.binder = Binder.factory(paramstyle=cls.paramstyle, case_insensitive=cls.case_insensitive)
+            except AttributeError as e:
+                if "paramstyle" in str(e):
+                    logger.error("%s needs to have a paramstyle set" % (cls))
+                raise
+
+
+        else:
+            try:
+                cls.binder = Binder.factory(paramstyle=cls.paramstyle)
+            except AttributeError as e:
+                if "paramstyle" in str(e):
+                    logger.error("%s needs to have a paramstyle set" % (cls))
+                raise
 
     def tearDown(self):
         try:
@@ -842,11 +854,85 @@ class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):
 
 
 class DryRunTest_MySQL(BinderHelper, unittest.TestCase):
-    """test Postgresql handling
+    """test MySQL handling
        currently not executing sql however, just formatting"""
 
     paramstyle = "format"
     type_sub = tuple
+
+
+class DryRunTest_MSSQL(BinderHelper, unittest.TestCase):
+    """test MS SQL handling
+       currently not executing sql however, just formatting"""
+
+    paramstyle = PARAMSTYLE_SQLSERVER
+    type_sub = tuple
+
+
+class CaseInsensitiveMixin(object):
+
+    def test_i03_repeated_insensitive(self):
+        """...supports repeated use of the same bind parameter"""
+        testname = "test_003_repeated"
+
+        custid = self.li_custid[1]
+        ordernum = 7
+
+        tqry_ins = """insert into orders(custid, ordernum, sku, qty)
+        values (%(custid)s, %(ordernum)s, %(ordernum)s, %(qty)s)"""
+
+        qry, sub = self.binder.format(tqry_ins,
+            dict(
+                sku="wont_find_this",
+                ORDERNUM=ordernum,
+                CUSTID=custid,
+                QTY=0,
+                )
+        )
+
+        if self.type_sub == tuple:
+            exp = (custid, ordernum, ordernum, 0)
+            self.assertEqual(exp, sub)
+
+        elif self.type_sub == dict:
+            exp = dict(custid=custid, ordernum=ordernum, qty=0)
+            self.assertEqual(exp, sub)
+
+        self.check_query(tqry_ins, qry)
+
+        if not self.cursor:
+            logger.info("%s.%s.return - no cursor" % (self, testname))
+            return
+
+        self.cursor.execute(qry, sub)
+
+        test_crit = BasicArgument()
+        test_crit.custid = custid
+        test_crit.ordernum = ordernum
+
+        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit)
+
+        self.cursor.execute(qry, sub)
+
+        res = self.cursor.fetchone()
+
+        data = parse_res(self.cursor, [res])[0]
+
+        #column type should be respected
+        self.assertNotEqual(data["ordernum"], data["sku"])
+        self.assertEqual(data["ordernum"], int(data["sku"]))
+
+
+
+class DryRunTest_MSSQL_CaseInsensitive(BinderHelper, unittest.TestCase, CaseInsensitiveMixin):
+    """test MS SQL handling
+       currently not executing sql however, just formatting"""
+
+    paramstyle = PARAMSTYLE_SQLSERVER
+    type_sub = tuple
+    case_insensitive = True
+
+
 
 
 if __name__ == '__main__':

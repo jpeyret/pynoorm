@@ -108,7 +108,7 @@ class Binder(object):
             raise
 
     @classmethod
-    def factory(cls, paramstyle):
+    def factory(cls, paramstyle, case_insensitive=False):
         """
         return a Binder subclass instance appropriate
         to the underlying db library paramstyle bind variable
@@ -228,6 +228,7 @@ class Binder_pyformat(Binder):
         self.sub[key] = got
         return None
 
+PARAMSTYLE_QMARK = PARAMSTYLE_SQLITE = PARAMSTYLE_SQLSERVER = "qmark"
 
 class BinderQmark(Binder):
     """ supports:  sqlite3, SQL Server
@@ -240,7 +241,7 @@ class BinderQmark(Binder):
         (value-found-for-somebar,)
     """
 
-    paramstyle = "qmark"
+    paramstyle = PARAMSTYLE_QMARK
     supports = "sqlite3, mssql"
     qry_replace = "?"
 
@@ -386,7 +387,7 @@ class Binder_NotImplementedError(Binder):
 #will process incoming template substitutions
 Binder._di_paramstyle["pyformat"] = Binder_pyformat
 Binder._di_paramstyle["named"] = BinderNamed
-Binder._di_paramstyle["qmark"] = BinderQmark
+Binder._di_paramstyle[PARAMSTYLE_QMARK] = BinderQmark
 Binder._di_paramstyle["format"] = BinderFormat
 
 Binder._di_paramstyle["experimentalnamed"] = ExperimentalBinderNamed
