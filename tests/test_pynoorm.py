@@ -803,7 +803,7 @@ class Sqlite3(LiveTest, BinderHelper, unittest.TestCase):
 
         cls.paramstyle = sqlite3.paramstyle
 
-        cls.conn = sqlite3.connect(":memory")
+        cls.conn = sqlite3.connect(":memory:")
         cls.cursor = cls.conn.cursor()
         cls.OperationalError = sqlite3.OperationalError
 
@@ -873,13 +873,65 @@ class CaseInsensitiveMixin(object):
 
     def test_i03_repeated_insensitive(self):
         """...supports repeated use of the same bind parameter"""
-        testname = "test_003_repeated"
+        testname = "test_i03_repeated_insensitive"
 
         custid = self.li_custid[1]
         ordernum = 7
 
         tqry_ins = """insert into orders(custid, ordernum, sku, qty)
         values (%(custid)s, %(ordernum)s, %(ordernum)s, %(qty)s)"""
+
+        qry, sub = self.binder.format(tqry_ins,
+            dict(
+                sku="wont_find_this",
+                ORDERNUM=ordernum,
+                CUSTID=custid,
+                QTY=0,
+                )
+        )
+
+        if self.type_sub == tuple:
+            exp = (custid, ordernum, ordernum, 0)
+            self.assertEqual(exp, sub)
+
+        elif self.type_sub == dict:
+            exp = dict(custid=custid, ordernum=ordernum, qty=0)
+            self.assertEqual(exp, sub)
+
+        self.check_query(tqry_ins, qry)
+
+        if not self.cursor:
+            logger.info("%s.%s.return - no cursor" % (self, testname))
+            return
+
+        self.cursor.execute(qry, sub)
+
+        test_crit = BasicArgument()
+        test_crit.custid = custid
+        test_crit.ordernum = ordernum
+
+        qry, sub = self.binder.format(self.tqry_customer_ordernum, test_crit)
+
+        self.cursor.execute(qry, sub)
+
+        res = self.cursor.fetchone()
+
+        data = parse_res(self.cursor, [res])[0]
+
+        #column type should be respected
+        self.assertNotEqual(data["ordernum"], data["sku"])
+        self.assertEqual(data["ordernum"], int(data["sku"]))
+
+
+    def test_i04_repeated_insensitive_varying_case(self):
+        """...supports repeated use of the same bind parameter but with varying case"""
+        testname = "test_i04_repeated_insensitive_varying_case"
+
+        custid = self.li_custid[1]
+        ordernum = 7
+
+        tqry_ins = """insert into orders(custid, ordernum, sku, qty)
+        values (%(custid)s, %(ordernum)s, %(ORDERNUM)s, %(qty)s)"""
 
         qry, sub = self.binder.format(tqry_ins,
             dict(
