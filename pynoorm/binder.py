@@ -79,31 +79,47 @@ class Binder(object):
 
         return msg
 
-    def _get_from_args(self, key):
+    def _case_sensitive(self, key):
+        return [key]
+
+    def _case_insensitive(self, key):
+        if key == key.upper():
+            return [key, key.lower()]
+        if key == key.lower():
+            return [key, key.upper()]
+        return [key]
+
+
+    _key_expand = _case_sensitive
+
+    def _get_from_args(self, key_in):
         """generic way to look for a key in the arg list"""
 
-        for arg in self.li_arg:
-            try:
-                got = arg[key]
-                return got
-            except (KeyError):
-                try:
-                    #try getattr
-                    got = getattr(arg, key)
-                    return got
-                except AttributeError:
-                    continue
+        li_key = self._key_expand(key_in)
 
-            except (AttributeError, TypeError):
-                #no __getitem__, try getattr
+        for key in li_key:
+            for arg in self.li_arg:
                 try:
-                    got = getattr(arg, key)
+                    got = arg[key]
                     return got
-                except AttributeError:
-                    continue
+                except (KeyError):
+                    try:
+                        #try getattr
+                        got = getattr(arg, key)
+                        return got
+                    except AttributeError:
+                        continue
+
+                except (AttributeError, TypeError):
+                    #no __getitem__, try getattr
+                    try:
+                        got = getattr(arg, key)
+                        return got
+                    except AttributeError:
+                        continue
 
         try:
-            raise KeyError(key)
+            raise KeyError(key_in)
         except Exception as e:
             raise
 
@@ -114,10 +130,16 @@ class Binder(object):
         to the underlying db library paramstyle bind variable
 
         :param paramstyle: parameter style string as per PEP-249
+        :case_insensitive: %(custid)s will match {"custid":1} or {"CUSTID":2}, with priority
+        going to the initial case.  mixed-case keys (custId) will only match {"custId":3}
         """
 
         try:
-            return cls._di_paramstyle[paramstyle]()
+            inst = cls._di_paramstyle[paramstyle]()
+            if case_insensitive:
+                inst._key_expand = inst._case_insensitive
+
+            return inst
         except KeyError:
             msg = """got:%s,
                   but expecting one of %s.
