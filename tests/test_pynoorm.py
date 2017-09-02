@@ -975,7 +975,6 @@ class CaseInsensitiveMixin(object):
         self.assertEqual(data["ordernum"], int(data["sku"]))
 
 
-
 class DryRunTest_MSSQL_CaseInsensitive(BinderHelper, unittest.TestCase, CaseInsensitiveMixin):
     """test MS SQL handling
        currently not executing sql however, just formatting"""
@@ -983,8 +982,6 @@ class DryRunTest_MSSQL_CaseInsensitive(BinderHelper, unittest.TestCase, CaseInse
     paramstyle = PARAMSTYLE_SQLSERVER
     type_sub = tuple
     case_insensitive = True
-
-
 
 
 if __name__ == '__main__':

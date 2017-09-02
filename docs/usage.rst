@@ -20,7 +20,7 @@ Calling `Binder.format(query_template, *args)` does the following:
 .. note::
 	1. `Binder.format` is also aliased to `__call__` to allow calling instances directly.
 	2. Refer to PEP249_ for details more details about expected variable placeholders and parameter objects.
-	3. Oracle, SQLite and PostgreSQL are currently supported, but Binder subclasses are extremely simple to write.
+	3. Oracle, SQLite, MS SQL Server and PostgreSQL are currently supported, but Binder subclasses are extremely simple to write.
 
 	.. _PEP249: https://www.python.org/dev/peps/pep-0249
 
