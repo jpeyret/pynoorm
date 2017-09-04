@@ -40,7 +40,7 @@ We're only linking right-to-left (i.e. an `Order` does not get a pointer to its 
 	linker.link(lookup, orders, attrname_on_left="orders")
 
 .. note::
-	A minimal call to `Linker.link` always needs to pass in the prepared lookup dictionary for the right and the left-side collection, which can be a list or iterator.  It also needs to specify the attribute name for the relation on the left.
+	A minimal call to `Linker.link` always needs to pass in the left's prepared dictionary, and the right's list/iterator.  It also needs to specify the attribute name for the relation on the left.
 
 
 Now, if we look at custid_3, i.e. `lookup["custid_3"]` or `customers[2]`, we that it has been linked to its orders.  `customer.orders` is a **list**, because that's the default for the left-side attribute type on a **Linker.link**.  Think of it as a 1-N, parent-child relationship.::
@@ -119,4 +119,31 @@ And the result, again for customer 2: ::
 	You can't mix objects and dictionaries within a list. For example, all customers need to be either objects or dictionaries.  Linker only looks at the first item in each list to adjust its behavior.
 
 
+Advanced Use
+------------
+
+Compound keys.
+
+We want to track sales tax, which we'll assume is determined by **country**, **state**. ::
+
+	SALES_TAX = [[Tax country= USA, state= OR, tax= 0], 
+		[Tax country= CAD, state= BC, tax= 12.5], 
+		[Tax country= USA, state= WA, tax= 6.5]]
+
+And the customers now also have that data: ::
+
+	[Customer country= USA, state= WA, xref= 3, custid= custid_3]
+
+First we need to create another Linker and then its lookup dictionary.  Note that we providing a tuple as
+the key name this time ::
+
+	linker_country = Linker(key_left=("country","state"))
+	lookup_country = linker_country.dict_from_list(customers)
+
+Then we just call the link. ::
+
+	linker_country.link(lookup_country
+	    , SALES_TAX
+	    , attrname_on_left="tax"
+	    , type_on_left=Linker.TYPE_SCALAR)
 

@@ -8,10 +8,24 @@ import pdb
 from traceback import print_exc as xp
 ########### debugging aids ##################
 
-class LinkResult(object):
-    def __init__(self):
-        self.left_orphans = []
+
+class LinkResultHelper(object):
+    def __init__(_this, **kwds):
+        """the odd bit with `_this` as first paremeter is because there is a `self`
+           in the kwds from Linker.link, so that would clash.
+           Assign all the Linker.link parameters to the instance's __dict__, then
+           we go back to standard self"""
+
+        try:
+            kwds["linker"] = kwds.pop("self")
+        except KeyError:
+            pass
+
+        _this.__dict__.update(**kwds)
+
+        self = _this
         self.right_orphans = []
+        self.left_orphans = []
         self.exception = None
 
     def set_exception(self, e):
@@ -109,13 +123,6 @@ class Linker(object):
 
         return di_left
 
-    def link_list_scalar(self, left, right, attrname_on_left, attrname_on_right
-        ,key_right=None
-        ,initialize_left=False
-        ,initialize_right=False
-        ):
-        """shortcut for a one-way 1..N link"""
-        return self.link(left, right, attrname_on_left, attrname_on_right=attrname_on_right, key_right=key_right, initialize_left=initialize_left, initialize_right=initialize_right, type_on_left=list, type_on_right=None)
 
     def link_list(self, left, right, attrname_on_left
         ,key_right=None
@@ -134,7 +141,6 @@ class Linker(object):
         ,setter_right=None
         ,attrname_on_right=None
         ,type_on_right=None
-        ,initialize_right=False
         ):
         """
         :param left: a dictionary of objects or dictionaries which will be linked to right-side objects
@@ -143,17 +149,17 @@ class Linker(object):
         :param attrname_on_left: the attribute name (or dictionary key) where the right-side object ref will be stored
 
         :param setter_left:  you can pass a callback to assign the right-side to left-side yourself.
-                             call signature:  fun(o_left, attrname, o_right)
+                             call signature:  f(o_left, attrname, o_right)
 
         :param type_on_left:  3 possibilities:
-                              None - just a scalar
-                              list (the default) - each right-side object will get an entry
+                              None or Linker.scalar - direct assignment o_left.attrname_on_left = o_right
+                              list (the default) - append each right-side object
                               dict - references are stored in a dict, but that requires dictkey_attrname_left to have been set as well.
                               !!!TODO!!! rename dictkey_attrname_left to dictkey_attrname_right (cuz the lookup is on the right-side object)
 
 
 
-        :return: LinkResult instance which mostly carries lists of orphans
+        :return: LinkResultHelper instance which mostly carries lists of orphans
 
         """
 
@@ -183,7 +189,7 @@ class Linker(object):
 
         try:
 
-            self.result = LinkResult()
+            self.result = LinkResultHelper(**locals())
 
             try:
                 assert isinstance(attrname_on_left, basestring)
