@@ -10,6 +10,10 @@ from traceback import print_exc as xp
 
 
 class LinkResultHelper(object):
+
+    def update(self, **kwds):
+        self.__dict__.update(**kwds)        
+
     def __init__(_this, **kwds):
         """the odd bit with `_this` as first paremeter is because there is a `self`
            in the kwds from Linker.link, so that would clash.
@@ -35,6 +39,32 @@ class LinkResultHelper(object):
     def add_right_orphan(self, o):
         """track that linker.link didn't find a di_left[right.keyval]"""
         self.right_orphans.append(o)
+
+    def initialize_lefts(self):
+        try:
+            li = self.left.values()
+            if not li:
+                return
+
+            linker = self.linker
+            attrname_on_left = self.attrname_on_left
+            type_on_left = self.type_on_left
+            getter = self.linker._get_getter(li[0], attrname_on_left)
+
+            _empty_setter_left = None
+            for l_obj in li:
+                try:
+                    v = getter(l_obj)
+                except (AttributeError, KeyError):
+                    _empty_setter_left = _empty_setter_left or linker._get_empty_setter(l_obj, attrname_on_left, type_on_left)
+                    _empty_setter_left(l_obj, attrname_on_left, type_on_left)
+
+            return self
+        except Exception, e:
+            # logger.error(repr(e)[:100])
+            print e
+            pdb.set_trace() #!!! remove
+            raise
 
 
 class Linker(object):
@@ -124,18 +154,9 @@ class Linker(object):
         return di_left
 
 
-    def link_list(self, left, right, attrname_on_left
-        ,key_right=None
-        ,initialize_left=False
-        ):
-        """shortcut for a one-way 1..N link"""
-        return self.link(left, right, attrname_on_left, key_right=key_right, initialize_left=initialize_left, type_on_left=list )
-
-
     def link(self, left, right, attrname_on_left
         ,setter_left=None
         ,type_on_left=list
-        ,initialize_left=False
         ,dictkey_attrname_left=None
         ,key_right=None
         ,setter_right=None
@@ -159,7 +180,7 @@ class Linker(object):
 
 
 
-        :return: LinkResultHelper instance which mostly carries lists of orphans
+        :return: LinkResultHelper instance to check orphans/assist initializations when needed
 
         """
 
@@ -189,7 +210,7 @@ class Linker(object):
 
         try:
 
-            self.result = LinkResultHelper(**locals())
+            self.helper = LinkResultHelper(**locals())
 
             try:
                 assert isinstance(attrname_on_left, basestring)
@@ -210,7 +231,7 @@ class Linker(object):
                 #NOTE:  at this point, if we handled a list instead of a scalar could we do m-n?
                 o_left = left.get(keyval, None)
                 if o_left is None:
-                    self.result.add_right_orphan(o_right)
+                    self.helper.add_right_orphan(o_right)
                     continue
 
                 #keep this like that as well, since it might not be cheap to pick the "first left"
@@ -221,17 +242,12 @@ class Linker(object):
                     setter_right = setter_right or self._get_setter(o_right, attrname_on_right, type_on_right)
                     setter_right(o_right, attrname_on_right, o_left)
 
-            if initialize_left:
-                # pdb.set_trace()
-                for o_left in left.values():
-                    _empty_setter_left = _empty_setter_left or self._get_empty_setter(o_left, attrname_on_left, type_on_left, check_empty=True)
-                    _empty_setter_left(o_left, attrname_on_left, type_on_left)
-
-            return self.result
-
         except Exception, e:
             if module_settings.USE_PDB: pdb.set_trace()
             raise
+        finally:
+            return self.helper
+
 
     def _get_empty_setter(self, obj, attrname_on_tgt, type_on_tgt, check_empty=False):
         """initialize the attribute to an appropriate empty value
