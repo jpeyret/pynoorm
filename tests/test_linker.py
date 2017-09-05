@@ -28,14 +28,7 @@ orders_by_cust = 3
 SHUFFLE_BY_DEFAULT = False
 
 def ppdb(e=None):
-    print(e)
-    if not getattr(ppdb, "sysd", False):
-
-        with open("/Users/jluc/kds2/wk/issues/fb526.github_linker/log.txt", "a") as fo:
-            fo.write("%s" % sys.argv) 
-            ppdb.sysd = True
-
-    if not sys.argv[0].endswith("nosetests"):
+    if ppdb.enabled and not sys.argv[0].endswith("nosetests"):
         pdb.set_trace()
 
 
@@ -389,4 +382,11 @@ class Test_Basic(unittest.TestCase):
 
 if __name__ == '__main__':
     import sys
+
+    if "--pdb" in sys.argv:
+        ppdb.enabled = True
+        sys.argv.remove("--pdb")
+    else:
+        ppdb.enabled = False
+
     sys.exit(unittest.main())
