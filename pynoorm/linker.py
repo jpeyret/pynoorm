@@ -40,6 +40,40 @@ class LinkResultHelper(object):
         """track that linker.link didn't find a di_left[right.keyval]"""
         self.right_orphans.append(o)
 
+
+    def initialize_rights(self):
+        try:
+            li = self.self.right_orphans
+
+            linker = self.linker
+            attrname = self.attrname_on_right
+            type_ = self.type_on_right
+            self._initialize(li, getter, attrname, type_)
+
+            return self
+        except Exception, e:
+            # logger.error(repr(e)[:100])
+            print e
+            pdb.set_trace() #!!! remove
+            raise
+
+
+    def _initialize(self, li, getter, attrname, type_):
+        if not li:
+            return
+            
+        linker = self.linker
+
+        getter = self.linker._get_getter(li[0], attrname)
+        _empty_setter = None
+        for obj in li:
+            try:
+                v = getter(obj)
+            except (AttributeError, KeyError):
+                _empty_setter = _empty_setter or linker._get_empty_setter(obj, attrname, type_)
+                _empty_setter(obj, attrname, type_)
+
+
     def initialize_lefts(self):
         try:
             li = self.left.values()
@@ -49,15 +83,9 @@ class LinkResultHelper(object):
             linker = self.linker
             attrname_on_left = self.attrname_on_left
             type_on_left = self.type_on_left
-            getter = self.linker._get_getter(li[0], attrname_on_left)
+            getter = self.linker._get_getter(li[0], self.attrname_on_left)
 
-            _empty_setter_left = None
-            for l_obj in li:
-                try:
-                    v = getter(l_obj)
-                except (AttributeError, KeyError):
-                    _empty_setter_left = _empty_setter_left or linker._get_empty_setter(l_obj, attrname_on_left, type_on_left)
-                    _empty_setter_left(l_obj, attrname_on_left, type_on_left)
+            self._initialize(li, getter, self.attrname_on_left, self.type_on_left)
 
             return self
         except Exception, e:
