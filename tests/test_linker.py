@@ -152,9 +152,6 @@ def get_sample_data(customer_pk, order_fk=None, address_fk=None, shuffle=SHUFFLE
 
     return res
 
-# from utils import ppp  #!!!
-use_pdb = True         #!!!
-
 import inspect #!!! remove
 
 pretty = pprint.PrettyPrinter(indent=2)
@@ -602,7 +599,6 @@ class Test_Basic(unittest.TestCase):
 
             linker = Linker(key_left="custid")
             lookup = linker.dict_from_list(customers)
-            pdb.set_trace()
             try:
                 helper = linker.link(lookup, orders, attrname_on_left="orders")
                 print("coucou")
