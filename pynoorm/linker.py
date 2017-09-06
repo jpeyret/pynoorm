@@ -43,12 +43,12 @@ class LinkResultHelper(object):
 
     def initialize_rights(self):
         try:
-            li = self.self.right_orphans
+            li = self.right_orphans
 
             linker = self.linker
             attrname = self.attrname_on_right
             type_ = self.type_on_right
-            self._initialize(li, getter, attrname, type_)
+            self._initialize(li, attrname, type_)
 
             return self
         except Exception, e:
@@ -58,7 +58,7 @@ class LinkResultHelper(object):
             raise
 
 
-    def _initialize(self, li, getter, attrname, type_):
+    def _initialize(self, li, attrname, type_):
         if not li:
             return
             
@@ -85,7 +85,7 @@ class LinkResultHelper(object):
             type_on_left = self.type_on_left
             getter = self.linker._get_getter(li[0], self.attrname_on_left)
 
-            self._initialize(li, getter, self.attrname_on_left, self.type_on_left)
+            self._initialize(li, self.attrname_on_left, self.type_on_left)
 
             return self
         except Exception, e:
@@ -273,7 +273,7 @@ class Linker(object):
         except Exception, e:
             if module_settings.USE_PDB: pdb.set_trace()
             raise
-        finally:
+        else:
             return self.helper
 
 
