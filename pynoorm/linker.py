@@ -8,6 +8,7 @@ import pdb
 from traceback import print_exc as xp
 ########### debugging aids ##################
 
+from .utils import SlotProxy
 
 class LinkResultHelper(object):
 

@@ -10,7 +10,7 @@ import pprint
 import unittest
 from time import time
 
-from pynoorm.linker import Linker
+from pynoorm.linker import Linker, SlotProxy
 
 import random
 import logging
@@ -613,6 +613,21 @@ class Test_Basic(unittest.TestCase):
                 raise
             else:
                 self.fail("should have had an AttributeError")
+
+            customers = [SlotProxy(obj) for obj in customers]
+
+            linker = Linker(key_left="custid")
+            lookup = linker.dict_from_list(customers)
+            helper = linker.link(lookup, orders, attrname_on_left="orders")
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+                self.assertEqual(2, len(customer.orders))
+
+                #xref is expected to match, that's from the way the data was constructed
+                for order in customer.orders:
+                    self.assertEqual(customer.xref, order["xref"])
+
 
         except Exception, e:
             if ppdb(): pdb.set_trace()
