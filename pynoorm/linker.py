@@ -2,18 +2,18 @@ from operator import attrgetter, itemgetter, setitem
 import collections
 
 ########### debugging aids ##################
-class module_settings:
-    USE_PDB = False
 import pdb
 from traceback import print_exc as xp
+
+def ppdb():
+    """do-nothing debugger test"""
+    pass
+
 ########### debugging aids ##################
 
 from .utils import SlotProxy
 
 class LinkResultHelper(object):
-
-    def update(self, **kwds):
-        self.__dict__.update(**kwds)        
 
     def __init__(_this, **kwds):
         """the odd bit with `_this` as first paremeter is because there is a `self`
@@ -21,11 +21,9 @@ class LinkResultHelper(object):
            Assign all the Linker.link parameters to the instance's __dict__, then
            we go back to standard self"""
 
-        try:
-            kwds["linker"] = kwds.pop("self")
-        except KeyError:
-            pass
-
+        #`self` in the kwds refers to the Linker instance
+        kwds["linker"] = kwds.pop("self")
+        #store everything that was passed as parameters to `link`.
         _this.__dict__.update(**kwds)
 
         self = _this
@@ -33,38 +31,25 @@ class LinkResultHelper(object):
         self.left_orphans = []
         self.exception = None
 
-    def set_exception(self, e):
-        self.exception = e
-        return e
-
     def add_right_orphan(self, o):
         """track that linker.link didn't find a di_left[right.keyval]"""
         self.right_orphans.append(o)
 
-
     def initialize_rights(self):
+        """initialize right-side objects that didn't get linked"""
         try:
             li = self.right_orphans
-
-            linker = self.linker
-            attrname = self.attrname_on_right
-            type_ = self.type_on_right
-            self._initialize(li, attrname, type_)
-
-            return self
+            return self._initialize(li, self.attrname_on_right, self.type_on_right)
         except Exception, e:
-            # logger.error(repr(e)[:100])
-            print e
-            pdb.set_trace() #!!! remove
+            if ppdb(): pdb.set_trace()
             raise
 
-
     def _initialize(self, li, attrname, type_):
-        if not li:
-            return
+        """initialize objects that didn't get linked"""
+        if not li:  #pragma: no cover
+            return self
             
         linker = self.linker
-
         getter = self.linker._get_getter(li[0], attrname)
         _empty_setter = None
         for obj in li:
@@ -73,26 +58,15 @@ class LinkResultHelper(object):
             except (AttributeError, KeyError):
                 _empty_setter = _empty_setter or linker._get_empty_setter(obj, attrname, type_)
                 _empty_setter(obj, attrname, type_)
-
+        return self
 
     def initialize_lefts(self):
+        """initialize left-side objects that didn't get linked"""
         try:
             li = self.left.values()
-            if not li:
-                return
-
-            linker = self.linker
-            attrname_on_left = self.attrname_on_left
-            type_on_left = self.type_on_left
-            getter = self.linker._get_getter(li[0], self.attrname_on_left)
-
-            self._initialize(li, self.attrname_on_left, self.type_on_left)
-
-            return self
+            return self._initialize(li, self.attrname_on_left, self.type_on_left)
         except Exception, e:
-            # logger.error(repr(e)[:100])
-            print e
-            pdb.set_trace() #!!! remove
+            if ppdb(): pdb.set_trace()
             raise
 
 
@@ -106,31 +80,27 @@ class Linker(object):
         You need to provide a common key to link objects
 
         ex:
-        orders = select customer_id, id, total from CustomerOrder where customer_id between 100 and 200
-        itemlines  = select customer_id, order_id, id, amount from OrderLines where customer_id = 100 and 200
+        orders = select custid, id, total from CustomerOrder where custid between 100 and 200
+        itemlines  = select custid, order_id, id, amount from OrderLines where custid = 100 and 200
 
-        #orders are uniquely identified by customer_id and id
-        linker = Linker(("customer_id", "id"))
+        #orders are uniquely identified by custid and id
+        linker = Linker(("custid", "id"))
 
         #create a dictionary where orders can be looked up by customer and id.
         di_orders = linker.dict_from_list(orders)
 
         #link the order lines, but alias CustomerOrder.id to OrderLines.order_id
-        linker.link(orders, itemlines, attrname_on_left="lines", attrname_on_right="owner", key_right=("customer_id","order_id"))
+        linker.link(orders, itemlines, attrname_on_left="lines", attrname_on_right="owner", key_right=("custid","order_id"))
 
     """
 
     TYPE_SCALAR = None
 
-    def __repr__(self):
-        return "Linker.%s" % (getattr(self,"name", None) or id(self))
-
-
     def __init__(self, key_left):
         """key_left is either a string or tuple of strings
            stating which attributes/keys on future objects
            identify them.
-           ex:  ("customer_id","order_id") for CustomerOrder Table
+           ex:  ("custid","order_id") for CustomerOrder Table
         """
         self.key_left = key_left
 
@@ -153,8 +123,7 @@ class Linker(object):
                     raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
 
         except Exception, e:
-
-            if module_settings.USE_PDB: pdb.set_trace()
+            if ppdb(): pdb.set_trace()
             raise
 
     def dict_from_list(self, li):
@@ -177,7 +146,7 @@ class Linker(object):
                 #NOTE:  at this point, if we used a list instead of a simple assignment could we do m-n?
                 di_left[keyval] = o_left
             except Exception, e:
-                if module_settings.USE_PDB: pdb.set_trace()
+                if ppdb(): pdb.set_trace()
                 raise
 
         return di_left
@@ -233,7 +202,7 @@ class Linker(object):
 
         key_right - assume the same key as the left objects', but you could use this to alias attribute names.
 
-            ex:  ("customer_id","order_id") for OrderLines, if OrderLines.order_id referred to CustomerOrder.id
+            ex:  ("custid","order_id") for OrderLines, if OrderLines.order_id referred to CustomerOrder.id
 
         """
 
@@ -243,7 +212,7 @@ class Linker(object):
 
             try:
                 assert isinstance(attrname_on_left, basestring)
-            except AssertionError, e:
+            except AssertionError, e:  #pragma: no cover
                 raise TypeError("attrname_on_left needs to be a valid python variable name")
 
             key_left = self.key_left
@@ -257,7 +226,6 @@ class Linker(object):
                 get_key = get_key or self._get_getter(o_right, key_right)
                 keyval = get_key(o_right)
 
-                #NOTE:  at this point, if we handled a list instead of a scalar could we do m-n?
                 o_left = left.get(keyval, None)
                 if o_left is None:
                     self.helper.add_right_orphan(o_right)
@@ -272,7 +240,7 @@ class Linker(object):
                     setter_right(o_right, attrname_on_right, o_left)
 
         except Exception, e:
-            if module_settings.USE_PDB: pdb.set_trace()
+            if ppdb(): pdb.set_trace()
             raise
         else:
             return self.helper
@@ -324,7 +292,7 @@ class Linker(object):
                     raise NotImplementedError()
 
         except Exception, e:
-            if module_settings.USE_PDB: pdb.set_trace()
+            if ppdb(): pdb.set_trace()
             raise
 
     supported_target_types = [dict, list, None]
@@ -389,7 +357,7 @@ class Linker(object):
                 else:
                     raise TypeError("unsupported target type:%s.  Supported are: %s" % (type_on_tgt, self.supported_target_types))
 
-        except Exception, e:
-            if module_settings.USE_PDB: pdb.set_trace()
+        except Exception, e:    #pragma: no cover
+            if ppdb(): pdb.set_trace()
             raise
 
