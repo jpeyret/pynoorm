@@ -13,26 +13,47 @@ PyNoORM
         :alt: Documentation Status
 
 
-Easier raw SQL, with or without an ORM.
+Use Python with or without an ORM.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Binder class
-----------------
+PyNoORM consists of several very loosely-coupled classes that facilitate the use of Python in a web or SQL
+context without having to rely on an ORM.  Working with an ORM is entirely possible, in fact, it's been used with
+the Django ORM and SQLAlchemy in the same application that interfaces with Oracle, Microsoft SQL Server and PostgreSQL all at the same time.
 
-A Binder abstracts differences in the underlying database's bind variable syntax and also grabs bind variables
-from a list of arguments, using dict, then attribute lookup.
+Focus is on:
+
+ - simplicity for the user
+ - support for databases that are not under "controlled" by the Python application or may be read-only for it.
+ - performance
+
++------------------------+-----------------------------------------------------------------------+
+| Class                  | Role                                                                  |
++========================+=======================================================================+
+| Binder                 | abstract SQL query binding                                            |
++------------------------+-----------------------------------------------------------------------+
+| Linker                 | join objects together                                                 |
++------------------------+-----------------------------------------------------------------------+
+| TemplateGenerator      | generate Django Templates dynamically from query results, loosely     |
+| *(to be added)*        | inspired by Django Tables 2                                           |
++------------------------+-----------------------------------------------------------------------+
+
+
+The Binder class
+================
+
+A Binder support easier raw SQL by abstracting differences in the underlying database's bind variable syntax and also substituting bind variables from a list of arguments, using dict, then attribute lookup.
 
 Using native database binds also helps to protect you against SQL injection attacks.
 
-supported:  Postgresql, sqlite3, Oracle, MySQL
+supported:  Postgresql, sqlite3, Oracle, MySQL, MS SQL Server
+
+Basic Use
+---------
 
 Simple **sqlite3** example::
 
     from pynoorm.binder import Binder
     binder = Binder.factory("qmark")
-
-    #just for test... assign a custid to binder for attribute lookup
-    binder.custid = "AMAZON"
 
     query, parameters = binder("select * from orders where custid = %(custid)s", dict(custid="ACME"), binder)
 
@@ -43,28 +64,80 @@ Simple **sqlite3** example::
 	>>> print(parameters)
 	('ACME',)
 
-Oracle, with mutiple parameters?::
+Oracle, with mutiple parameters ::
 
     import cx_Oracle
     binder_ora = Binder.factory(cx_Oracle.paramstyle)
 
+    #just for test... assign a custid for attribute lookup
+    binder_ora.custid = "AMAZON"
+
     tqry = "select * from orders where custid = %(custid)s and has_shipped = %(shipped)s"
-    query, parameters = binder_ora(tqry, dict(custid="ACME", shipped=1), binder)
+    query, parameters = binder_ora(tqry, binder_ora, dict(custid="ACME", shipped=1))
 
     >>> print(query)
     select * from orders where custid = :custid and has_shipped = :shipped
     >>> print(parameters)
-    {'shipped': 1, 'custid': 'ACME'}
+    {'shipped': 1, 'custid': 'AMAZON'}
 
 
-* Free software: MIT license
-* Documentation: https://pynoorm.readthedocs.org.
 
 Features
 --------
 
 * adjust query to support database parameter style
 * find and prepare bind parameters from `*args`.
+
+
+
+The Linker class
+============
+
+A Linker allows you to join objects or dictionaries without the need for an ORM.  You can think of it as performing `parent-child` linking, but it uses `left-right` instead as a more neutral terminology instead.
+
+Basic use 
+---------
+
+Sample data, in dictionaries: ::
+
+    customers = [
+        dict(id=1, xref=1),
+        dict(id=2, xref=2),
+    ]
+
+    orders = [
+        dict(custid=1, xref=1, orderid=11),
+        dict(custid=1, xref=1, orderid=12),
+        dict(custid=2, xref=2, orderid=21),
+        dict(custid=2, xref=2, orderid=22),
+    ]
+
+Create a linker, then a lookup dictionary for the left side.  Finally, link the left and right side. ::
+
+    linker = Linker(key_left="id")
+    lookup = linker.dict_from_list(customers)
+    linker.link(lookup, orders, attrname_on_left="orders", key_right="custid")
+
+
+The customers now have an `orders` list:  ::
+
+    [ { 'id': 1,
+        'orders': [ { 'custid': 1, 'orderid': 11, 'xref': 1},
+                    { 'custid': 1, 'orderid': 12, 'xref': 1}],
+        'xref': 1},
+      { 'id': 2,
+        'orders': [ { 'custid': 2, 'orderid': 21, 'xref': 2},
+                    { 'custid': 2, 'orderid': 22, 'xref': 2}],
+        'xref': 2}]
+
+Features
+--------
+    
+    * supports objects or dictionaries
+    * takes basic Python objects so can join across different databases, allowing for example tagging of objects in a read-only database
+    * allows compound field keys and aliasing
+    * orphans, on the left or the right, can be initialized with empty attribute values.
+
 
 Credits
 ---------
@@ -73,3 +146,6 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+* Free software: MIT license
+* Documentation: https://pynoorm.readthedocs.org.

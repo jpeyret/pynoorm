@@ -1,11 +1,6 @@
 =====
-Usage
-=====
-
-
-
 The Binder Class
-----------------
+=====
 
 A Binder is used to abstract differences in the underlying database's bind variable syntax (see PEP249_).
 

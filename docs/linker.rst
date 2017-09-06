@@ -1,11 +1,6 @@
-=====
-Linker
-=====
-
-
 
 The Linker Class
-----------------
+================
 
 Linker cross-links collections of objects (or dictionaries) together.  You tell it which attribute names to use to join objects and it will do the rest.  A **Linker** will link objects in a *"left-side"* collection with a *"right-side"* collection.  You may also want to think of a it as *parent-child* linking.
 
@@ -119,10 +114,11 @@ And the result, again for customer 2: ::
 	You can't mix objects and dictionaries within a list. For example, all customers need to be either objects or dictionaries.  Linker only looks at the first item in each list to adjust its behavior.
 
 
-Advanced Use
-------------
+Advanced Usage
+============
 
 Compound keys.
+--------------
 
 We want to track sales tax, which we'll assume is determined by **country**, **state**. ::
 
@@ -134,8 +130,8 @@ And the customers now also have that data: ::
 
 	[Customer country= USA, state= WA, xref= 3, custid= custid_3]
 
-First we need to create another Linker and then its lookup dictionary.  Note that we providing a tuple as
-the key name this time ::
+First we need to create another Linker and then its lookup dictionary.  Note that we provide a tuple as
+the key this time ::
 
 	linker_country = Linker(key_left=("country","state"))
 	lookup_country = linker_country.dict_from_list(customers)
@@ -147,3 +143,152 @@ Then we just call the link. ::
 	    , attrname_on_left="tax"
 	    , type_on_left=Linker.TYPE_SCALAR)
 
+This gives: ::
+
+	{ 'address': ...,
+	  'country': 'USA',
+	  'custid': 'custid_3',
+	  'orders': [ ...],
+	  'state': 'WA',
+	  'tax': [Tax country= USA, state= WA, tax= 6.5],
+	  'xref': 3}
+
+Except that I live in Canada, and we have `provinces`, not `states`.  Let's change the customer object. ::
+
+	customer:
+	{ 'country': 'USA', 'custid': 'custid_3', 'province': 'WA', 'xref': 3}
+
+We just need to change the linker we create and then alias the call from `province` to `state`: ::
+
+    linker_country = Linker(key_left=("country","province"))
+    lookup_country = linker_country.dict_from_list(customers)
+
+    linker_country.link(lookup_country
+        , SALES_TAX
+        , attrname_on_left="tax"
+        , type_on_left=Linker.TYPE_SCALAR
+        , key_right = ("country","state")
+        )
+
+Result: ::
+
+	{ 'address': ...,
+	  'country': 'USA',
+	  'custid': 'custid_3',
+	  'orders': [ ...],
+	  'province': 'WA',
+	  'tax': [Tax country= USA, state= WA, tax= 6.5],
+	  'xref': 3}
+
+
+Custom setters
+--------------
+
+What if you didn't want to set `customer.tax` to a dictionary, but just wanted the tax rate in `customer.tax`?   All you need to do is to provide your own setter.  It'll be just as fast, if not faster, because `link` won't have to dynamically create a setter function.
+
+Going back to our basic country/state, country/state data:  ::
+
+	linker_country = Linker(key_left=("country","state"))
+	lookup_country = linker_country.dict_from_list(customers)
+
+	def setter(o_left, attrname, o_right):
+		"""this is the expected function signature.  it allows you to do whatever you want"""
+	    o_left.tax = o_right.tax
+
+	linker_country.link(lookup_country
+	    ,SALES_TAX
+	    ,attrname_on_left = "tax"
+	    ,setter_left = setter
+	    )
+
+Result, for customer #3: ::
+
+	{ 'address': { 'customer': 'custid_3', 'street': '103 1st Ave.', 'xref': 3},
+	  'country': 'USA',
+	  'custid': 'custid_3',
+	  'orders': [ [Order order_id= 3001, xref= 3, custid= custid_3],
+	              [Order order_id= 3002, xref= 3, custid= custid_3],
+	              [Order order_id= 3003, xref= 3, custid= custid_3]],
+	  'state': 'WA',
+	  'tax': 6.5,
+	  'xref': 3}
+
+
+Two-way linking
+---------------
+
+If you are only preparing data before rendering it with a **Django Template** or a **Jinja 2**, there is no real need for linking each order to its customer.  But in other cases, you may want `order.customer`, as well as `customer.orders`.Just use **attrname_on_right** to specify the attribute name to use on the right side of the relation.  It will default to a scalar ::
+
+	linker.link(lookup, orders, attrname_on_left="orders", attrname_on_right="customer")
+
+
+Note the new `customer` field in the `order` below: ::
+
+	customer.order #1
+	{ 'custid': 'custid_2',
+	  'customer': [Customer xref= 2, custid= custid_2, orders= [[Order order_id= 2001, customer= [Customer xref= 2, custid= custid_2, orders= [...]],
+
+Orphans
+-------
+
+Linker doesn't particularly care that there is missing data, it just won't link for those objects.
+
+Here's some modified sample data, where **customer #1 and the orders for customer #3** are missing: ::
+
+	'customers': [ [Customer xref= 2, custid= custid_2],
+	             [Customer xref= 3, custid= custid_3]],
+
+	'orders': [ [Order order_id= 1001, xref= 1, custid= custid_1],
+	          [Order order_id= 2001, xref= 2, custid= custid_2],
+	          [Order order_id= 2002, xref= 2, custid= custid_2]]}
+
+calling `link` the same was as before gives :: 
+
+	[Customer xref= 2, custid= custid_2, orders= [[Order order_id= 2001, customer= [Customer xref= 2...]],
+	[Customer xref= 3, custid= custid_3]
+
+And looking at the orders for the missing customer 1: ::
+
+	[Order order_id= 1001, xref= 1, custid= custid_1],
+	[Order order_id= 2001, customer= [Customer xref= 2, custid= custid_2...
+
+So, customers without matching orders won't have a `customer.orders` field and orders without a customer won't have an `order.customer` field.  This makes sense, but may cause **KeyError/AttributeError** if the rest of your code expects those attributes.  
+
+This is where the `helper` object returned by `Linker.link`, which we've ignored so far, can help. `initialize_left` and `initialize_right()`, will add empty attribute defaults for the left and right, respectively.  You don't have to tell it to use a `list` or `None`, because it knows that from your preceding call to `link`. ::
+
+	helper = linker.link(lookup, orders, attrname_on_left="orders", attrname_on_right="customer")
+	helper.initialize_lefts()
+	helper.initialize_rights()
+
+which you could chain as ::
+
+	helper.initialize_lefts().initialize_rights()
+
+
+Customer #3 now has an empty `orders` list and orders for customer #1 have customer=None:  ::
+
+	{ 'custid': 'custid_3', 'orders': [], 'xref': 3}
+	{ 'custid': 'custid_1', 'customer': None, 'order_id': 1001, 'xref': 1}
+
+
+Slots-based objects
+------------------
+
+Some database libraries, like SQL Alchemy, return objects that use `__slots__` to minimize memory usage.  Objects with slots can't accept attribute assignments for attributes that haven't been defined in advance.
+
+This is the type of error to expect from SQLAlchemy:  ::
+
+	AttributeError: 'RowProxy' object has no attribute 'foo'
+
+
+
+Performance
+===========
+
+Performance isn't a feature, but it's good to keep track of it.
+
+On an early 2011 Mac Book Pro, 2.2Ghz, 16GB RAM and 512GB SSD, the processing time scales linearly, at least up 100k customers: ::
+
+	1000 customers and 8964 orders linked in 0.0100049972534 seconds
+	10000 customers and 89964 orders linked in 0.110321998596 seconds
+	100000 customers and 899964 orders linked in 1.63230895996 seconds

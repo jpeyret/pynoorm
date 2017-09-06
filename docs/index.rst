@@ -3,18 +3,29 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyNoORM's documentation!
-======================================
+PyNoOrm - Python data with or without ORMs
+==========================================
+
+tetsljaslfasfdlj
+
 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    readme
    installation
-   usage
+
+.. toctree::
+   :maxdepth: 1
+
+   binder
    linker
+
+
+.. toctree::
+   :maxdepth: 1
    contributing
    authors
    history
