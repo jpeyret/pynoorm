@@ -8,7 +8,7 @@ Tests for `pynoorm.linker` module,
 """
 import pprint 
 import unittest
-
+from time import time
 
 from pynoorm.linker import Linker
 
@@ -17,19 +17,25 @@ import logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# from lib.utils import ppp
-from traceback import print_exc as xp
-
 import sys
+
+### debuggging stuff###############
+from traceback import print_exc as xp
 import pdb
 
+def ppdb(e=None):
+    """conditional debugging
+       use with:  `if ppdb(): pdb.set_trace()` 
+    """
+    return ppdb.enabled
+
+ppdb.enabled = False
+###################################
+
+
 size = 3
-orders_by_cust = 3
 SHUFFLE_BY_DEFAULT = False
 
-def ppdb(e=None):
-    if ppdb.enabled and not sys.argv[0].endswith("nosetests"):
-        pdb.set_trace()
 
 
 
@@ -76,6 +82,7 @@ SALES_TAX = [
 di_state_tax = dict([(o.state,o.tax) for o in SALES_TAX])
 
 def enhance_country_data(list_, attrname_country="country", attrname_state="state"):
+    """spike incoming objects with a data from SALES_TAX"""
 
     for cntr, o in enumerate(list_):
 
@@ -91,11 +98,13 @@ def enhance_country_data(list_, attrname_country="country", attrname_state="stat
             setattr(o,attrname_state, state)
 
 
-def get_sample_data(customer_pk, order_fk=None, address_fk=None, shuffle=SHUFFLE_BY_DEFAULT):
+def get_sample_data(customer_pk, order_fk=None, address_fk=None, shuffle=SHUFFLE_BY_DEFAULT, size=size, print_ = True):
     """prepare some simple customer/order data.  
        -    the _pk, _fk parameters allow you to vary the fieldnames used to link
-       -    xref should always match between a customer and the order
        -    shuffle - shuffles the lists so that they are not ordered
+
+       xref is populated so that it always matches the customer even on other object.
+
     """
 
     res = DummyObject(customers=[], orders=[], addresses=[])
@@ -122,7 +131,7 @@ def get_sample_data(customer_pk, order_fk=None, address_fk=None, shuffle=SHUFFLE
 
         res.addresses.append(di)
 
-        numorders = min(100, cntr+1)
+        numorders = min(10, cntr+1)
 
         for ordernum in range(1, numorders):
             di = {
@@ -137,8 +146,9 @@ def get_sample_data(customer_pk, order_fk=None, address_fk=None, shuffle=SHUFFLE
         random.shuffle(res.orders)
         random.shuffle(res.addresses)
 
-    print("\n\ndata:") #!!!
-    ppp(res)           #!!!
+    if print_:
+        print("\n\ndata:") #!!!
+        ppp(res)           #!!!
 
     return res
 
@@ -164,10 +174,270 @@ def ppp(obj):
     else:
         pretty.pprint(obj)
 
+class Test_2Way(unittest.TestCase):
+
+    def test_orphans(self):
+        data = get_sample_data(customer_pk="custid", address_fk="customer", shuffle=False)
+
+        #transform customers and orders into objects...
+        #knock out customer #1...
+        xref_remove_customer = 1
+        data.customers = [
+            Customer(**di) 
+            for di in data.customers 
+            if di["custid"] != "custid_%s" % (xref_remove_customer)]
+
+        #and orders for customer #3
+        xref_remove_order = 3
+        data.orders = [
+            Order(**di) 
+            for di in data.orders 
+            if di["custid"] != "custid_%s" % (xref_remove_order)]
+
+        customers = data.customers
+        orders = data.orders
+
+        print("\n\ndata2:")
+        ppp(data)
+        if ppdb(): pdb.set_trace()
+
+        try:
+            #create the linker and tell it what the left-hand key will be
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = linker.dict_from_list(customers)
+
+            #minimal use case for Linker, one-way, right-to-left assignment
+            #each customer will be updated with its orders
+            linker.link(lookup, orders, attrname_on_left="orders", attrname_on_right="customer")
+
+            customer = lookup["custid_%d" % (size-1)]
+            print("\n\ncustomer.post")
+            ppp(customer) #!!! remove
+
+            print("\ncustomer.order #1")
+            ppp(customer.orders[0])
+
+            print("type(customer):%s" % type(customer))
+            print("type(customer.orders[0]):%s" % type(customer.orders[0]))
+
+            if ppdb(): pdb.set_trace()
 
 
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+
+                if customer.xref == 3:
+                    if ppdb() : pdb.set_trace()
+                    ppp(customer)
+                    self.assertFalse(hasattr(customer, "orders"))
+                else:
+                    self.assertEqual(customer.xref, len(customer.orders))
+
+                    #xref is expected to match, that's from the way the data was constructed
+                    for order in customer.orders:
+                        self.assertEqual(customer.xref, order.xref)
+                        self.assertEqual(customer.custid, order.customer.custid)
+
+            for order in orders:
+                if order.xref == xref_remove_customer:
+                    self.assertFalse(hasattr(order, "customer"))
+                else:
+                    self.assertEqual(order.xref, order.customer.xref)
+
+
+        except Exception, e: #!!!
+            logger.error(repr(e)[:100])
+            if ppdb(): pdb.set_trace()
+            raise
+
+
+    def test_orphans_with_initialization(self):
+        data = get_sample_data(customer_pk="custid", address_fk="customer", shuffle=False)
+
+        #transform customers and orders into objects...
+        #knock out customer #1...
+        xref_remove_customer = 1
+        data.customers = [
+            Customer(**di) 
+            for di in data.customers 
+            if di["custid"] != "custid_%s" % (xref_remove_customer)]
+
+        #and orders for customer #3
+        xref_remove_order = 3
+        data.orders = [
+            Order(**di) 
+            for di in data.orders 
+            if di["custid"] != "custid_%s" % (xref_remove_order)]
+
+        customers = data.customers
+        orders = data.orders
+
+        print("\n\ndata2:")
+        ppp(data)
+        if ppdb(): pdb.set_trace()
+
+        try:
+            #create the linker and tell it what the left-hand key will be
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = linker.dict_from_list(customers)
+
+            #minimal use case for Linker, one-way, right-to-left assignment
+            #each customer will be updated with its orders
+            helper = linker.link(lookup, orders, attrname_on_left="orders", attrname_on_right="customer")
+
+            customer = lookup["custid_%d" % (size-1)]
+            print("\n\ncustomer.post")
+            ppp(customer) #!!! remove
+
+            print("\ncustomer.order #1")
+            ppp(customer.orders[0])
+
+            print("type(customer):%s" % type(customer))
+            print("type(customer.orders[0]):%s" % type(customer.orders[0]))
+
+            if ppdb(): pdb.set_trace()
+            helper.initialize_lefts().initialize_rights()
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+
+                if customer.xref == 3:
+                    if ppdb() : pdb.set_trace()
+                    ppp(customer)
+                    self.assertFalse(customer.orders)
+                else:
+                    self.assertEqual(customer.xref, len(customer.orders))
+
+                    #xref is expected to match, that's from the way the data was constructed
+                    for order in customer.orders:
+                        self.assertEqual(customer.xref, order.xref)
+                        self.assertEqual(customer.custid, order.customer.custid)
+
+            for order in orders:
+                if order.xref == xref_remove_customer:
+                    self.assertFalse(order.customer)
+                else:
+                    self.assertEqual(order.xref, order.customer.xref)
+
+
+        except Exception, e: #!!!
+            logger.error(repr(e)[:100])
+            if ppdb(): pdb.set_trace()
+            raise
+
+
+    def test_basic_objects(self):
+        data = get_sample_data(customer_pk="custid", address_fk="customer", shuffle=False)
+
+        #transform customers and orders into objects...
+        data.customers = [Customer(**di) for di in data.customers]
+        data.orders = [Order(**di) for di in data.orders]
+
+        customers = data.customers
+        orders = data.orders
+
+        print("\n\ndata2:")
+        ppp(data)
+
+        try:
+            #create the linker and tell it what the left-hand key will be
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = linker.dict_from_list(customers)
+
+            #minimal use case for Linker, one-way, right-to-left assignment
+            #each customer will be updated with its orders
+            linker.link(lookup, orders, attrname_on_left="orders", attrname_on_right="customer")
+
+            customer = lookup["custid_%d" % (size-1)]
+            print("\n\ncustomer.post")
+            ppp(customer) #!!! remove
+
+            print("\ncustomer.order #1")
+            ppp(customer.orders[0])
+
+            print("type(customer):%s" % type(customer))
+            print("type(customer.orders[0]):%s" % type(customer.orders[0]))
+
+            if ppdb(): pdb.set_trace()
+
+
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+                self.assertEqual(customer.xref, len(customer.orders))
+
+                #xref is expected to match, that's from the way the data was constructed
+                for order in customer.orders:
+                    self.assertEqual(customer.xref, order.xref)
+                    self.assertEqual(customer.custid, order.customer.custid)
+
+        except Exception, e: #!!!
+            logger.error(repr(e)[:100])
+            if ppdb(): pdb.set_trace()
+            raise
+
+
+class Test_Speed(unittest.TestCase):
+
+    def run_it(self, size):
+        data = get_sample_data(customer_pk="custid", shuffle=False, size=size, print_ = False)
+
+        customers = data.customers
+        orders = data.orders
+
+        try:
+            start = time()
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = linker.dict_from_list(customers)
+
+            linker.link(lookup, orders, attrname_on_left="orders", attrname_on_right="customer")
+            duration = time() - start
+
+            print("%s customers and %s orders linked in %s seconds" % (len(customers), len(orders), duration))
+
+        except Exception, e: #!!!
+            logger.error(repr(e)[:100])
+            if ppdb(): pdb.set_trace()
+            raise
+
+
+    def test_basic_with_dictionaries(self):
+        self.run_it(1000)
+        self.run_it(10000)
+        self.run_it(100000)
 
 class Test_Basic(unittest.TestCase):
+
+    def test_very_basic(self):
+        customers = [
+            dict(id=1, xref=1),
+            dict(id=2, xref=2),
+        ]
+
+        orders = [
+            dict(custid=1, xref=1, orderid=11),
+            dict(custid=1, xref=1, orderid=12),
+            dict(custid=2, xref=2, orderid=21),
+            dict(custid=2, xref=2, orderid=22),
+        ]
+
+        linker = Linker(key_left="id")
+
+        lookup = linker.dict_from_list(customers)
+
+        linker.link(lookup, orders, attrname_on_left="orders", key_right="custid")
+
+        ppp(customers)
+
 
     def test_basic_with_dictionaries(self):
         data = get_sample_data(customer_pk="custid", shuffle=False)
@@ -199,7 +469,7 @@ class Test_Basic(unittest.TestCase):
 
         except Exception, e: #!!!
             logger.error(repr(e)[:100])
-            if use_pdb: ppdb()
+            if ppdb(): pdb.set_trace()
             raise
 
     def test_scalar_with_dictionaries(self):
@@ -222,11 +492,10 @@ class Test_Basic(unittest.TestCase):
 
             linker.link(lookup, addresses, attrname_on_left="address", key_right="customer",type_on_left=Linker.TYPE_SCALAR)
 
-            ppdb()
 
             ppp(data) #!!! remove
             ppp(lookup["custid_%d" % (size-1)]) #!!! remove
-            ppdb()
+            if ppdb(): pdb.set_trace()
 
             for customer in customers:
                 #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
@@ -241,7 +510,7 @@ class Test_Basic(unittest.TestCase):
 
         except Exception, e: #!!!
             logger.error(repr(e)[:100])
-            if use_pdb: ppdb()
+            if ppdb(): pdb.set_trace()
             raise
 
     def test_compound_keys(self):
@@ -263,7 +532,6 @@ class Test_Basic(unittest.TestCase):
         print("customer:")
         tcustomer = customers[size-1]
         ppp(tcustomer) #!!! remove
-        # ppdb()
 
         repr(tcustomer)
 
@@ -289,6 +557,191 @@ class Test_Basic(unittest.TestCase):
                 , attrname_on_left="tax"
                 , type_on_left=Linker.TYPE_SCALAR)
 
+            ppp(tcustomer) #!!! remove
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+                self.assertEqual(customer.xref, len(customer.orders))
+
+                #xref is expected to match, that's from the way the data was constructed
+                for order in customer.orders:
+                    self.assertEqual(customer.xref, order.xref)
+
+                #ditto for the adress
+                self.assertEqual(customer.xref, customer.address["xref"])
+                self.assertEqual(customer.tax.tax, di_state_tax[customer.state])
+
+        except Exception, e: #!!!
+            logger.error(repr(e)[:100])
+            if ppdb(): pdb.set_trace()
+            raise
+
+
+    def test_slots(self):
+
+        try:
+
+            class Customer(object):
+                __slots__ = ("custid", "xref")
+
+                def __init__(self, custid, xref):
+                    self.custid = custid
+                    self.xref = xref
+
+            customers = [
+                Customer(custid=1, xref=1),
+                Customer(custid=2, xref=2),
+            ]
+
+            orders = [
+                dict(custid=1, xref=1, orderid=11),
+                dict(custid=1, xref=1, orderid=12),
+                dict(custid=2, xref=2, orderid=21),
+                dict(custid=2, xref=2, orderid=22),
+            ]
+
+            linker = Linker(key_left="custid")
+            lookup = linker.dict_from_list(customers)
+            pdb.set_trace()
+            try:
+                helper = linker.link(lookup, orders, attrname_on_left="orders")
+                print("coucou")
+            except AttributeError:
+                print("coucou. AttributeError")
+                pass
+            except Exception:
+                raise
+            else:
+                self.fail("should have had an AttributeError")
+
+        except Exception, e:
+            if ppdb(): pdb.set_trace()
+            raise
+
+    def test_custom_setter(self):
+        data = get_sample_data(customer_pk="custid", address_fk="customer", shuffle=False)
+
+        #transform customers and orders into objects...
+        data.customers = [Customer(**di) for di in data.customers]
+        data.orders = [Order(**di) for di in data.orders]
+
+        enhance_country_data(data.customers)
+
+        customers = data.customers
+        orders = data.orders
+        addresses = data.addresses
+
+        print("\n\ndata2:")
+        ppp(data)
+
+        print("customer:")
+        tcustomer = customers[size-1]
+        ppp(tcustomer) #!!! remove
+
+        repr(tcustomer)
+
+
+
+        print("\npost")
+        try:
+        
+
+
+            #create the linker and tell it what the left-hand key will be
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = linker.dict_from_list(customers)
+
+            #minimal use case for Linker, one-way, right-to-left assignment
+            #each customer will be updated with its orders
+            linker.link(lookup, orders, attrname_on_left="orders")
+
+            linker.link(lookup, addresses, attrname_on_left="address", key_right="customer", type_on_left=Linker.TYPE_SCALAR)
+
+            linker_country = Linker(key_left=("country","state"))
+            lookup_country = linker_country.dict_from_list(customers)
+
+            def setter(o_left, attrname, o_right):
+                o_left.tax = o_right.tax
+
+
+            linker_country.link(lookup_country
+                ,SALES_TAX
+                ,attrname_on_left = "tax"
+                ,setter_left = setter
+                )
+
+            ppp(tcustomer) #!!! remove
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+                self.assertEqual(customer.xref, len(customer.orders))
+
+                #xref is expected to match, that's from the way the data was constructed
+                for order in customer.orders:
+                    self.assertEqual(customer.xref, order.xref)
+
+                #ditto for the adress
+                self.assertEqual(customer.xref, customer.address["xref"])
+                self.assertEqual(customer.tax, di_state_tax[customer.state])
+
+        except Exception, e: #!!!
+            logger.error(repr(e)[:100])
+            if ppdb(): pdb.set_trace()
+            raise
+
+
+    def test_compound_keys_aliased(self):
+        try:
+            data = get_sample_data(customer_pk="custid", address_fk="customer", shuffle=False)
+
+            #transform customers and orders into objects...
+            data.customers = [Customer(**di) for di in data.customers]
+            data.orders = [Order(**di) for di in data.orders]
+
+            enhance_country_data(data.customers, attrname_state="province")
+
+
+            customers = data.customers
+            orders = data.orders
+            addresses = data.addresses
+
+            print("\n\ndata2:")
+            ppp(data)
+
+            print("customer:")
+            tcustomer = customers[size-1]
+            ppp(tcustomer) #!!! remove
+
+            self.assertTrue(tcustomer.province)
+
+
+            repr(tcustomer)
+
+            print("\npost")
+            #create the linker and tell it what the left-hand key will be
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = linker.dict_from_list(customers)
+
+            #minimal use case for Linker, one-way, right-to-left assignment
+            #each customer will be updated with its orders
+            linker.link(lookup, orders, attrname_on_left="orders")
+
+            linker.link(lookup, addresses, attrname_on_left="address", key_right="customer", type_on_left=Linker.TYPE_SCALAR)
+
+            linker_country = Linker(key_left=("country","province"))
+            lookup_country = linker_country.dict_from_list(customers)
+
+            linker_country.link(lookup_country
+                , SALES_TAX
+                , attrname_on_left="tax"
+                , type_on_left=Linker.TYPE_SCALAR
+                , key_right = ("country","state")
+                )
+
             # customer = lookup["custid_%d" % (size-1)]
             ppp(tcustomer) #!!! remove
 
@@ -312,14 +765,16 @@ class Test_Basic(unittest.TestCase):
                 self.assertEqual(customer.xref, customer.address["xref"])
 
                 # pdb.set_trace()
-                self.assertEqual(customer.tax.tax, di_state_tax[customer.state])
+                self.assertEqual(customer.tax.tax, di_state_tax[customer.province])
 
 
 
         except Exception, e: #!!!
             logger.error(repr(e)[:100])
-            if use_pdb: ppdb(e)
+            if ppdb(): pdb.set_trace()
             raise
+
+
 
 
     def test_basic_objects(self):
@@ -356,7 +811,7 @@ class Test_Basic(unittest.TestCase):
             print("type(customer.address):%s" % type(customer.address))
             print("type(customer.orders[0]):%s" % type(customer.orders[0]))
 
-            ppdb()
+            if ppdb(): pdb.set_trace()
 
 
 
@@ -375,18 +830,15 @@ class Test_Basic(unittest.TestCase):
 
         except Exception, e: #!!!
             logger.error(repr(e)[:100])
-            if use_pdb: ppdb()
+            if ppdb(): pdb.set_trace()
             raise
 
 
 
 if __name__ == '__main__':
-    import sys
-
+    #conditional debugging, but not in nosetests
     if "--pdb" in sys.argv:
-        ppdb.enabled = True
+        ppdb.enabled = not sys.argv[0].endswith("nosetests")
         sys.argv.remove("--pdb")
-    else:
-        ppdb.enabled = False
 
     sys.exit(unittest.main())
