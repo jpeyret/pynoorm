@@ -16,3 +16,9 @@ History
 ------------------
 
 * Added support for Python 3.3+ and MySQL
+
+0.3.0 (2017-09-06)
+------------------
+
+* Added SQL Server support
+* Added Linker class to support object cross-referencing
