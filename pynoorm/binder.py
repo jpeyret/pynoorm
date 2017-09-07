@@ -232,7 +232,7 @@ class Binder_pyformat(Binder):
 
         try:
             self.tqry % (self)
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
         #Postgresql query format stays as %(foo)s
@@ -285,7 +285,7 @@ class BinderQmark(Binder):
 
         try:
             qry = self.tqry % (self)
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
         return qry, tuple(self.sub)
@@ -359,7 +359,7 @@ class BinderNamed(Binder):
 
         try:
             qry = self.tqry % (self)
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
         return qry, self.sub

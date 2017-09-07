@@ -41,7 +41,7 @@ class LinkResultHelper(object):
         try:
             li = self.right_orphans
             return self._initialize(li, self.attrname_on_right, self.type_on_right)
-        except Exception, e:    #pragma: no cover
+        except (Exception,) as e:    #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
@@ -66,7 +66,7 @@ class LinkResultHelper(object):
         try:
             li = self.left.values()
             return self._initialize(li, self.attrname_on_left, self.type_on_left)
-        except Exception, e: #pragma: no cover
+        except (Exception,) as e: #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
@@ -108,7 +108,7 @@ class Linker(object):
                 else:
                     raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
 
-        except Exception, e: #pragma: no cover
+        except (Exception,) as e: #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
@@ -133,7 +133,7 @@ class Linker(object):
                 keyval = get_key(o_left)
                 #NOTE:  at this point, if we used a list instead of a simple assignment could we do m-n?
                 di_left[keyval] = o_left
-            except Exception, e:    #pragma: no cover
+            except (Exception,) as e:    #pragma: no cover
                 if ppdb(): pdb.set_trace()
                 raise
 
@@ -176,7 +176,7 @@ class Linker(object):
 
             try:
                 assert isinstance(attrname_on_left, basestring)
-            except AssertionError, e:  #pragma: no cover
+            except (AssertionError,) as e:  #pragma: no cover
                 raise TypeError("attrname_on_left needs to be a valid python variable name")
 
             key_left = self.key_left
@@ -203,7 +203,7 @@ class Linker(object):
                     setter_right = setter_right or self._get_setter(o_right, attrname_on_right, type_on_right)
                     setter_right(o_right, attrname_on_right, o_left)
 
-        except Exception, e:    #pragma: no cover
+        except (Exception,) as e:    #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
         else:
@@ -241,7 +241,7 @@ class Linker(object):
                 else:
                     raise NotImplementedError()
 
-        except Exception, e:  #pragma: no cover
+        except (Exception,) as e:  #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
@@ -302,6 +302,6 @@ class Linker(object):
                 else:
                     raise TypeError("unsupported target type:%s.  Supported are: %s" % (type_on_tgt, self.supported_target_types))
 
-        except Exception, e:    #pragma: no cover
+        except (Exception,) as e:    #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise

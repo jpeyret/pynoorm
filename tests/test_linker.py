@@ -245,7 +245,7 @@ class Test_2Way(unittest.TestCase):
                     self.assertEqual(order.xref, order.customer.xref)
 
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -322,7 +322,7 @@ class Test_2Way(unittest.TestCase):
                     self.assertEqual(order.xref, order.customer.xref)
 
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -375,7 +375,7 @@ class Test_2Way(unittest.TestCase):
                     self.assertEqual(customer.xref, order.xref)
                     self.assertEqual(customer.custid, order.customer.custid)
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -401,7 +401,7 @@ class Test_Speed(unittest.TestCase):
 
             print("%s customers and %s orders linked in %s seconds" % (len(customers), len(orders), duration))
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -464,7 +464,7 @@ class Test_Basic(unittest.TestCase):
                 for order in customer["orders"]:
                     self.assertEqual(customer["xref"], order["xref"])
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -505,7 +505,7 @@ class Test_Basic(unittest.TestCase):
                 #ditto for the adress
                 self.assertEqual(customer["xref"], customer["address"]["xref"])
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -568,7 +568,7 @@ class Test_Basic(unittest.TestCase):
                 self.assertEqual(customer.xref, customer.address["xref"])
                 self.assertEqual(customer.tax.tax, di_state_tax[customer.state])
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -625,7 +625,7 @@ class Test_Basic(unittest.TestCase):
                     self.assertEqual(customer.xref, order["xref"])
 
 
-        except Exception, e:
+        except (Exception,) as e:
             if ppdb(): pdb.set_trace()
             raise
 
@@ -697,7 +697,7 @@ class Test_Basic(unittest.TestCase):
                 self.assertEqual(customer.xref, customer.address["xref"])
                 self.assertEqual(customer.tax, di_state_tax[customer.state])
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -780,7 +780,7 @@ class Test_Basic(unittest.TestCase):
 
 
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
@@ -839,7 +839,7 @@ class Test_Basic(unittest.TestCase):
 
 
 
-        except Exception, e: #!!!
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if ppdb(): pdb.set_trace()
             raise
