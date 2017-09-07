@@ -1,6 +1,8 @@
 from operator import attrgetter, itemgetter, setitem
 import collections
 
+from .utils import SlotProxy
+
 ########### debugging aids ##################
 import pdb
 from traceback import print_exc as xp
@@ -8,12 +10,11 @@ from traceback import print_exc as xp
 def ppdb():
     """do-nothing debugger test"""
     pass
-
 ########### debugging aids ##################
 
-from .utils import SlotProxy
 
 class LinkResultHelper(object):
+    """returned by `Linker.link` and can be used to see what wasn't linked"""
 
     def __init__(_this, **kwds):
         """the odd bit with `_this` as first paremeter is because there is a `self`
@@ -40,7 +41,7 @@ class LinkResultHelper(object):
         try:
             li = self.right_orphans
             return self._initialize(li, self.attrname_on_right, self.type_on_right)
-        except Exception, e:
+        except Exception, e:    #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
@@ -65,7 +66,7 @@ class LinkResultHelper(object):
         try:
             li = self.left.values()
             return self._initialize(li, self.attrname_on_left, self.type_on_left)
-        except Exception, e:
+        except Exception, e: #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
@@ -76,21 +77,6 @@ class Linker(object):
         objects.  You can think 'parent' for left and 'child' for right
         but that's not strictly true as sibling and scalar relationships
         are supported.  many-to-many is not supported.
-
-        You need to provide a common key to link objects
-
-        ex:
-        orders = select custid, id, total from CustomerOrder where custid between 100 and 200
-        itemlines  = select custid, order_id, id, amount from OrderLines where custid = 100 and 200
-
-        #orders are uniquely identified by custid and id
-        linker = Linker(("custid", "id"))
-
-        #create a dictionary where orders can be looked up by customer and id.
-        di_orders = linker.dict_from_list(orders)
-
-        #link the order lines, but alias CustomerOrder.id to OrderLines.order_id
-        linker.link(orders, itemlines, attrname_on_left="lines", attrname_on_right="owner", key_right=("custid","order_id"))
 
     """
 
@@ -122,12 +108,14 @@ class Linker(object):
                 else:
                     raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
 
-        except Exception, e:
+        except Exception, e: #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
     def dict_from_list(self, li):
-        """given that we know the expected key accessor on the left we'll set up a dictionary for linking"""
+        """prepare a dictionary for linking based on `left_key`
+           :param li:  a list of objects or dictionaries
+        """
 
         key_left = self.key_left
 
@@ -145,7 +133,7 @@ class Linker(object):
                 keyval = get_key(o_left)
                 #NOTE:  at this point, if we used a list instead of a simple assignment could we do m-n?
                 di_left[keyval] = o_left
-            except Exception, e:
+            except Exception, e:    #pragma: no cover
                 if ppdb(): pdb.set_trace()
                 raise
 
@@ -164,45 +152,21 @@ class Linker(object):
         """
         :param left: a dictionary of objects or dictionaries which will be linked to right-side objects
         :param right: a list(iterator?) of objects or dictionaries.  you can also pass in a dictionary, its values will be used in that case
-                              !!!TODO!!! test
         :param attrname_on_left: the attribute name (or dictionary key) where the right-side object ref will be stored
-
         :param setter_left:  you can pass a callback to assign the right-side to left-side yourself.
-                             call signature:  f(o_left, attrname, o_right)
-
-        :param type_on_left:  3 possibilities:
-                              None or Linker.scalar - direct assignment o_left.attrname_on_left = o_right
+                             call signature:  f(o_target, attrname, o_link)
+        :param type_on_left:  None/Linker.scalar - direct assignment o_left.attrname_on_left = o_right
                               list (the default) - append each right-side object
                               dict - references are stored in a dict, but that requires dictkey_attrname_left to have been set as well.
-                              !!!TODO!!! rename dictkey_attrname_left to dictkey_attrname_right (cuz the lookup is on the right-side object)
-
-
+                              
+        :param dictkey_attrname_left: if your target's attribute is a dictonary, you need to provide the field that will be used on for that key
+                                      ex:  attrname_on_left="tags", type_on_left=dict, dictkey_attrname_left="tagtype"
+        :param key_right: specifying something here allows you to alias fields used in key_left
+        :param setter_right: see setter_left
+        :param attrname_on_right:  passing a value means a 2-way link
+        :param type_on_right:  scalar is assumed, but list is also supported
 
         :return: LinkResultHelper instance to check orphans/assist initializations when needed
-
-        """
-
-
-
-        """the core method
-
-        left - a dictionary of objects or dictionaries that have been keyed by the left_key
-
-        right - a list of objects or dictionaries
-
-        setter_left or setter_right - if specified, a function with a signature of f(obj, attrname, value).  Note that you would need to
-        provide in the form obj_left.__class__.funcname, in order to unbind the method so that obj gets the value of the targets
-
-        attrname_on_left, right - obj_left.attrname_on_left = obj_right.  by default, the left object is not assigned to the right objects
-
-        type_on_left = multiple right children are assumed for each left, so this is a list.  set it to None to have a simple attribute.
-
-        type_on_right = the right object is assumed to be a child with one parent
-            (actually the results of getkey are handled as a scalar so many-many would not work)
-
-        key_right - assume the same key as the left objects', but you could use this to alias attribute names.
-
-            ex:  ("custid","order_id") for OrderLines, if OrderLines.order_id referred to CustomerOrder.id
 
         """
 
@@ -239,29 +203,21 @@ class Linker(object):
                     setter_right = setter_right or self._get_setter(o_right, attrname_on_right, type_on_right)
                     setter_right(o_right, attrname_on_right, o_left)
 
-        except Exception, e:
+        except Exception, e:    #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
         else:
             return self.helper
 
-
-    def _get_empty_setter(self, obj, attrname_on_tgt, type_on_tgt, check_empty=False):
-        """initialize the attribute to an appropriate empty value
-        check_empty avoids overwriting if already set"""
+    def _get_empty_setter(self, obj, attrname_on_tgt, type_on_tgt):
+        """initialize the attribute to an appropriate empty value"""
         try:
             if isinstance(obj, collections.Mapping):
 
                 def setdefault(tgt, attrname, value):
-                    if check_empty and tgt.has_key(attrname):
-                        return
-
                     tgt.setdefault(attrname, value())
 
                 def setvalue(tgt, attrname, value):
-                    if check_empty and tgt.has_key(attrname):
-                        return
-
                     tgt[attrname] = value
 
                 if callable(type_on_tgt):
@@ -270,18 +226,12 @@ class Linker(object):
                     return setvalue
                 else:
                     raise NotImplementedError()
-
             else:
 
                 def setdefault(tgt, attrname, value):
-                    if check_empty and hasattr(tgt, attrname):
-                        return
-
                     setattr(tgt, attrname, value())
 
                 def setvalue(tgt, attrname, value):
-                    if check_empty and hasattr(tgt, attrname):
-                        return
                     setattr(tgt, attrname, value)
 
                 if callable(type_on_tgt):
@@ -291,11 +241,10 @@ class Linker(object):
                 else:
                     raise NotImplementedError()
 
-        except Exception, e:
+        except Exception, e:  #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
 
-    supported_target_types = [dict, list, None]
     supported_target_types = [list, None]
 
     def _get_setter(self, obj, attrname_on_tgt, type_on_tgt, dictkey_attrname=None, o_src=None):
@@ -307,11 +256,8 @@ class Linker(object):
            also determines how to initialize attribute and add values.
         """
 
-
         assert isinstance(attrname_on_tgt, basestring)
-
         try:
-
             if isinstance(obj, collections.Mapping):
 
                 def append(tgt, attrname, value):
@@ -351,7 +297,6 @@ class Linker(object):
 
                     return setdict
 
-
                 elif type_on_tgt is None:
                     return setattr
                 else:
@@ -360,4 +305,3 @@ class Linker(object):
         except Exception, e:    #pragma: no cover
             if ppdb(): pdb.set_trace()
             raise
-
