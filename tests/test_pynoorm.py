@@ -497,7 +497,7 @@ class BinderHelper(object):
                 tqry,
                 dict(custid=custid, status_list=li),
                 self)
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
         if self.type_sub == dict:
@@ -549,7 +549,7 @@ class BinderHelper(object):
                 tqry,
                 dict(custid=custid, status_list=li),
                 self)
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
         if self.type_sub == dict:
@@ -597,7 +597,7 @@ class BinderHelper(object):
                 tqry,
                 dict(custid=custid, status_list=status_list),
                 self)
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
         s_exp = set()
