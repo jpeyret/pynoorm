@@ -1,6 +1,8 @@
 from operator import attrgetter, itemgetter, setitem
 import collections
 
+from six import string_types
+
 from .utils import SlotProxy
 
 ########### debugging aids ##################
@@ -94,14 +96,14 @@ class Linker(object):
         """returns a getter function appropriate for the getitem/getattr support in `obj`"""
         try:
             if isinstance(obj, collections.Mapping):
-                if isinstance(key, basestring):
+                if isinstance(key, string_types):
                     return itemgetter(key)
                 elif isinstance(key, collections.Sequence):
                     return itemgetter(*key)
                 else:
                     raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
             else:
-                if isinstance(key, basestring):
+                if isinstance(key, string_types):
                     return attrgetter(key)
                 elif isinstance(key, collections.Sequence):
                     return attrgetter(*key)
@@ -175,7 +177,7 @@ class Linker(object):
             self.helper = LinkResultHelper(**locals())
 
             try:
-                assert isinstance(attrname_on_left, basestring)
+                assert isinstance(attrname_on_left, string_types)
             except (AssertionError,) as e:  #pragma: no cover
                 raise TypeError("attrname_on_left needs to be a valid python variable name")
 
@@ -256,7 +258,7 @@ class Linker(object):
            also determines how to initialize attribute and add values.
         """
 
-        assert isinstance(attrname_on_tgt, basestring)
+        assert isinstance(attrname_on_tgt, string_types)
         try:
             if isinstance(obj, collections.Mapping):
 
