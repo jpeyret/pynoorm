@@ -17,8 +17,8 @@ Use Python with or without an ORM.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 PyNoORM consists of several very loosely-coupled classes that facilitate the use of Python in a web or SQL
-context without having to rely on an ORM.  Working with an ORM is entirely possible, in fact, it's been used with
-the Django ORM and SQLAlchemy in the same application that interfaces with Oracle, Microsoft SQL Server and PostgreSQL all at the same time.
+context without having to rely on an ORM.  Working with an ORM is entirely possible, in fact, it's used with
+the Django ORM and SQLAlchemy in an application that interfaces with Oracle, Microsoft SQL Server and PostgreSQL all at the same time.
 
 Focus is on:
 
@@ -45,7 +45,7 @@ A Binder support easier raw SQL by abstracting differences in the underlying dat
 
 Using native database binds also helps to protect you against SQL injection attacks.
 
-supported:  Postgresql, sqlite3, Oracle, MySQL, MS SQL Server
+supported:  PostgreSQL, sqlite3, Oracle, MySQL, SQL Server
 
 Basic Use
 ---------
