@@ -66,7 +66,7 @@ class LinkResultHelper(object):
     def initialize_lefts(self):
         """initialize left-side objects that didn't get linked"""
         try:
-            li = self.left.values()
+            li = list(self.left.values())
             return self._initialize(li, self.attrname_on_left, self.type_on_left)
         except (Exception,) as e: #pragma: no cover
             if ppdb(): pdb.set_trace()
