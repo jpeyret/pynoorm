@@ -292,3 +292,14 @@ On an early 2011 Mac Book Pro, 2.2Ghz, 16GB RAM and 512GB SSD, the processing ti
 	1000 customers and 8964 orders linked in 0.0100049972534 seconds
 	10000 customers and 89964 orders linked in 0.110321998596 seconds
 	100000 customers and 899964 orders linked in 1.63230895996 seconds
+
+API
+===
+
+.. autoclass:: pynoorm.linker.Linker
+	:members: __init__, dict_from_list, link
+
+.. autoclass:: pynoorm.linker.LinkResultHelper
+	:members: __init__, initialize_rights, initialize_lefts
+
+
