@@ -16,3 +16,20 @@ class SlotProxy(object):
             return getattr(self._obj, attrname)
         except AttributeError:
             raise
+
+def rename_bindnames(tqry, li_adjust):
+    """use this to alter the query template to match expected attribute names in bind objects/dictionaries
+    
+       For example, a predefined query may be:  "select * from customers where custid = %(custid)s"
+       But you are repeatedly passing bind dictionaries like {"customer" : "cust001"}, {"customer" : "cust002"}
+
+       in that case qry_template = rename_bindnames(qry_template, [("custid","customer")])
+       make your client code shorter and speed it up as well.
+
+    """
+        for bindname, attrname in li_adjust:
+            from_ = "%(" + bindname + ")s"
+            to_ = "%(" + attrname + ")s"
+            tqry = tqry.replace(from_, to_)
+        return tqry
+
