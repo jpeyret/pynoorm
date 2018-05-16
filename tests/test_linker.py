@@ -159,6 +159,7 @@ pretty = pprint.PrettyPrinter(indent=2)
 def methi(aMethod):             #!!! remove
     print (inspect.getargspec(aMethod)) #!!! remove
 
+pretty = pprint.PrettyPrinter(indent=2)
 def ppp(obj):
     if not isinstance(obj, (list, dict)):
         di = vars(obj)
