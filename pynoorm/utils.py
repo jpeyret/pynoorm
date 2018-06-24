@@ -27,9 +27,9 @@ def rename_bindnames(tqry, li_adjust):
        can make your client code simpler and speed it up as well.
 
     """
-        for bindname, attrname in li_adjust:
-            from_ = "%(" + bindname + ")s"
-            to_ = "%(" + attrname + ")s"
-            tqry = tqry.replace(from_, to_)
-        return tqry
+    for bindname, attrname in li_adjust:
+        from_ = "%(" + bindname + ")s"
+        to_ = "%(" + attrname + ")s"
+        tqry = tqry.replace(from_, to_)
+    return tqry
 
