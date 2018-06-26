@@ -68,9 +68,9 @@ class OverrideManager(object):
             self.to_object_class = to_object_class
 
         if issubclass(type_right, dict):
-            self.setter = self.setter_attr_from_dict
+            self.setter = self._setter_attr_from_dict
         else:
-            self.setter = self.setter_attr_from_object
+            self.setter = self._setter_attr_from_object
 
         self._mapping = []
 
@@ -88,6 +88,8 @@ class OverrideManager(object):
         return self._dict[attrname]
 
     def get(self, key, default=None):
+        """returns an empty dictionary if the key doesnt exist yet"""
+
         try:
             return self._dict.setdefault(key, {})
         except (Exception,) as e:
@@ -95,7 +97,8 @@ class OverrideManager(object):
             raise
 
 
-    def setter_attr_from_dict(self, o_left, attrnames, o_right):
+    def _setter_attr_from_dict(self, o_left, attrnames, o_right):
+        """assigns right-side values to the working dictonary's aliases """
         try:
             for attrname_l, attrname_r in self._mapping:
                 o_left[attrname_l] = o_right[attrname_r]
@@ -103,7 +106,8 @@ class OverrideManager(object):
             if cpdb(): pdb.set_trace()
             raise
 
-    def setter_attr_from_object(self, o_left, attrname, o_right):
+    def _setter_attr_from_object(self, o_left, attrname, o_right):
+        """assigns right-side attributes to the working dictonary's aliases """
         try:
             for attrname_l, attrname_r in self._mapping:
                 o_left[attrname_l] = getattr(o_right, attrname_r)
@@ -111,10 +115,8 @@ class OverrideManager(object):
             if cpdb(): pdb.set_trace()
             raise
 
-    def get_workdict(self):
-        return self._dict
-
     def as_dictionaries(self):
+        """return overrides as dictionaries"""
         try:
             return self._dict.copy()
         except (Exception,) as e:
@@ -122,7 +124,8 @@ class OverrideManager(object):
             raise
 
 
-    def as_objects(self):
+    def as_objects(self): 
+        """return overrides as objects, using `to_object_class`, if provided """
         try:
             di = {}
             cls_ = self.to_object_class
@@ -134,6 +137,7 @@ class OverrideManager(object):
             raise
 
     def link(self, linker, data):
+        """calls the linker providing itself as the lookup dictionary"""
         try:
             linker.link(self, data, attrname_on_left="ignore", setter_left=self.setter)
         except (Exception,) as e:
