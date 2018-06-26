@@ -59,6 +59,10 @@ class Overrides(object):
     def __getitem__(self, attrname):
         return self._dict[attrname]
 
+    def values(self):
+        """needed to tell the Linker to expect dictionaries"""
+        return [{}]
+
     def get(self, key, default=None):
         """returns an empty dictionary if the key doesnt exist yet"""
 
@@ -111,7 +115,7 @@ class Overrides(object):
     def link(self, linker, data):
         """calls the linker providing itself as the lookup dictionary"""
         try:
-            linker.link(self, data, attrname_on_left="ignore", setter_left=self.setter)
+            linker.link(self, data, attrname_on_left="_", setter_left=self.setter)
         except (Exception,) as e:
             if cpdb(): pdb.set_trace()
             raise
