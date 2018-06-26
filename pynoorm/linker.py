@@ -175,7 +175,7 @@ class Linker(object):
 
         try:
 
-            self.helper = LinkResultHelper(**locals())
+            helper = self.helper = LinkResultHelper(**locals())
 
             try:
                 assert isinstance(attrname_on_left, string_types)
@@ -195,7 +195,7 @@ class Linker(object):
 
                 o_left = left.get(keyval, None)
                 if o_left is None:
-                    self.helper.add_right_orphan(o_right)
+                    helper.add_right_orphan(o_right)
                     continue
 
                 #keep this like that as well, since it might not be cheap to pick the "first left"
@@ -308,3 +308,7 @@ class Linker(object):
         except (Exception,) as e:    #pragma: no cover
             if cpdb(): pdb.set_trace()
             raise
+
+
+
+
