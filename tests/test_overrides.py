@@ -52,7 +52,17 @@ class OverrideDict(object):
         else:
             self.setter = self.setter_attr_from_object
 
+        self._mapping = []
 
+        if not isinstance(attrnames, list):
+            attrnames = [attrnames]
+
+        for attrname in attrnames:
+            if isinstance(attrname, tuple):
+                attrname_l, attrname_r = attrname
+            else:
+                attrname_l = attrname_r = attrname
+            self._mapping.append((attrname_l, attrname_r))            
 
 
 
@@ -77,16 +87,8 @@ class OverrideDict(object):
             if cpdb(): pdb.set_trace()
             raise
 
-
-
-
     def setter_attr_from_dict(self, o_left, attrnames, o_right):
         try:
-            if isinstance(attrname, tuple):
-                attrname_l, attrname_r = attrname
-            else:
-                attrname_l = attrname_r = attrname
-
             o_left[attrname_l] = o_right.get(attrname_r)
         except (Exception,) as e:
             if cpdb(): pdb.set_trace()
@@ -94,12 +96,8 @@ class OverrideDict(object):
 
     def setter_attr_from_object(self, o_left, attrname, o_right):
         try:
-            if isinstance(attrname, tuple):
-                attrname_l, attrname_r = attrname
-            else:
-                attrname_l = attrname_r = attrname
-
-            o_left[attrname_l] = getattr(o_right, attrname_r, None)
+            for attrname_l, attrname_r in self._mapping:
+                o_left[attrname_l] = getattr(o_right, attrname_r, None)
         except (Exception,) as e:
             if cpdb(): pdb.set_trace()
             raise
@@ -119,9 +117,7 @@ class OverrideDict(object):
             raise
 
 
-
 class Test_SelfLinker(unittest.TestCase):
-
 
     def setUp(self):
         self.customer_rates = [
@@ -136,14 +132,13 @@ class Test_SelfLinker(unittest.TestCase):
         ]
 
 
-    def test_attrname(self):
+    def test_tax(self):
         try:
             #create the linker and tell it what the left-hand key will be
             linker = Linker(key_left="custid")
 
             #make a lookup dictionary point to customers by custid
             lookup = OverrideDict(attrnames="tax", source_right=dict)
-
 
             linker.link(lookup, self.customer_rates, attrname_on_left="tax", setter_left=lookup.setter_attr_from_object)
             linker.link(lookup, self.customer_rate_overrides, attrname_on_left="tax", setter_left=lookup.setter_attr_from_object)
@@ -162,10 +157,6 @@ class Test_SelfLinker(unittest.TestCase):
                 msg = "%s.exp:%s:<>:%s:got" % (key, exp, got)
 
                 self.assertEqual(exp, got, msg)
-
-
-
-
 
             pass
         except (Exception,) as e:
