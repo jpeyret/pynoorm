@@ -175,7 +175,9 @@ class Linker(object):
 
         try:
 
-            helper = self.helper = LinkResultHelper(**locals())
+            print "%sLinker2.link%s" % ("*"*80 + "\n", "\n"+ "*"*80)
+
+            self.helper = LinkResultHelper(**locals())
 
             try:
                 assert isinstance(attrname_on_left, string_types)
@@ -185,32 +187,93 @@ class Linker(object):
             key_left = self.key_left
             key_right = key_right or key_left
 
-            get_key = _empty_setter_right = _empty_setter_left = None
+            #grab some sample objects from left and right
+            if not hasattr(right, "next"):
+                right = iter(right)
 
-            for o_right in right:
+            sample_right = right.next()
+            sample_left = left.values()[0]
 
-                #keeping this in-loop supports iterators on the right.
-                get_key = get_key or self._get_getter(o_right, key_right)
-                keyval = get_key(o_right)
+            #and use the samples to figure out getters and setters
+            get_key = self._get_getter(sample_right, key_right)
+            setter_left = setter_left or self._get_setter(
+                sample_left, attrname_on_left
+                , type_on_left, dictkey_attrname_left, sample_right)
 
-                o_left = left.get(keyval, None)
-                if o_left is None:
-                    helper.add_right_orphan(o_right)
-                    continue
+            if attrname_on_right:
+                setter_right = setter_right or self._get_setter(
+                    sample_right, attrname_on_right, type_on_right)
+            else:
+                setter_right = None
 
-                #keep this like that as well, since it might not be cheap to pick the "first left"
-                setter_left = setter_left or self._get_setter(o_left, attrname_on_left, type_on_left, dictkey_attrname_left, o_right)
-                setter_left(o_left, attrname_on_left, o_right)
+            #do we need to set left-only? or left and right?
+            if setter_right:
+                prepped = self._preppedlinkleftright
+            else:
+                prepped = self._preppedlinkleft
 
-                if attrname_on_right:
-                    setter_right = setter_right or self._get_setter(o_right, attrname_on_right, type_on_right)
-                    setter_right(o_right, attrname_on_right, o_left)
+            #finally, call the actual link, on the sample, then the rest
+            for right_ in [[sample_right],right]:
+
+                prepped(left=left, right=right_
+                    ,attrname_on_left=attrname_on_left
+                    ,setter_left=setter_left
+                    ,key_left=key_left
+                    ,key_right=key_right
+                    ,setter_right=setter_right
+                    ,attrname_on_right=attrname_on_right
+                    ,get_key=get_key)
 
         except (Exception,) as e:    #pragma: no cover
             if cpdb(): pdb.set_trace()
             raise
         else:
             return self.helper
+
+    def _preppedlinkleft(self, left, right, attrname_on_left
+        ,setter_left
+        ,key_left
+        ,key_right
+        ,setter_right
+        ,attrname_on_right
+        ,get_key
+        ):
+        """called from link, with all the getters/setters pre-discovered
+           and knows that it won't be setting anything on the right side.
+           however the signature is the same as `_preppedlinkleftright`, to unify and simplify
+           calling
+        """
+
+        helper = self.helper
+        for o_right in right:
+            keyval = get_key(o_right)
+            o_left = left.get(keyval, None)
+            if o_left is None:
+                helper.add_right_orphan(o_right)
+                continue
+            setter_left(o_left, attrname_on_left, o_right)
+
+
+    def _preppedlinkleftright(self, left, right, attrname_on_left
+        ,setter_left
+        ,key_left
+        ,key_right
+        ,setter_right
+        ,attrname_on_right
+        ,get_key
+        ):
+        """see `_preppedlinkleft`, but this will set attributes on the right
+        """
+
+        helper = self.helper
+        for o_right in right:
+            keyval = get_key(o_right)
+            o_left = left.get(keyval, None)
+            if o_left is None:
+                helper.add_right_orphan(o_right)
+                continue
+            setter_left(o_left, attrname_on_left, o_right)
+            setter_right(o_right, attrname_on_right, o_left)
 
     def _get_empty_setter(self, obj, attrname_on_tgt, type_on_tgt):
         """initialize the attribute to an appropriate empty value"""
