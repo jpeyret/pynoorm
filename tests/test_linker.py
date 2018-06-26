@@ -23,13 +23,13 @@ import sys
 from traceback import print_exc as xp
 import pdb
 
-def ppdb(e=None):
+def cpdb(e=None):
     """conditional debugging
-       use with:  `if ppdb(): pdb.set_trace()` 
+       use with:  `if cpdb(): pdb.set_trace()` 
     """
-    return ppdb.enabled
+    return cpdb.enabled
 
-ppdb.enabled = False
+cpdb.enabled = False
 ###################################
 
 
@@ -45,10 +45,6 @@ class DummyObject(object):
         self.__dict__.update(**kwds)
         self._classname = _classname or self.__class__.__name__
 
-# class DummyObjectPrint(DummyObject)
-
-#     def __init__(self, **kwds):
-#         self.__dict__.update(**kwds)
 
     def __repr__(self):
         di = self.__dict__.copy()
@@ -197,7 +193,7 @@ class Test_2Way(unittest.TestCase):
 
         print("\n\ndata2:")
         ppp(data)
-        if ppdb(): pdb.set_trace()
+        if cpdb(): pdb.set_trace()
 
         try:
             #create the linker and tell it what the left-hand key will be
@@ -220,7 +216,7 @@ class Test_2Way(unittest.TestCase):
             print("type(customer):%s" % type(customer))
             print("type(customer.orders[0]):%s" % type(customer.orders[0]))
 
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
 
 
 
@@ -228,7 +224,7 @@ class Test_2Way(unittest.TestCase):
                 #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
 
                 if customer.xref == 3:
-                    if ppdb() : pdb.set_trace()
+                    if cpdb() : pdb.set_trace()
                     ppp(customer)
                     self.assertFalse(hasattr(customer, "orders"))
                 else:
@@ -248,7 +244,7 @@ class Test_2Way(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -275,7 +271,7 @@ class Test_2Way(unittest.TestCase):
 
         print("\n\ndata2:")
         ppp(data)
-        if ppdb(): pdb.set_trace()
+        if cpdb(): pdb.set_trace()
 
         try:
             #create the linker and tell it what the left-hand key will be
@@ -298,14 +294,14 @@ class Test_2Way(unittest.TestCase):
             print("type(customer):%s" % type(customer))
             print("type(customer.orders[0]):%s" % type(customer.orders[0]))
 
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             helper.initialize_lefts().initialize_rights()
 
             for customer in customers:
                 #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
 
                 if customer.xref == 3:
-                    if ppdb() : pdb.set_trace()
+                    if cpdb() : pdb.set_trace()
                     ppp(customer)
                     self.assertFalse(customer.orders)
                 else:
@@ -325,7 +321,7 @@ class Test_2Way(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -363,7 +359,7 @@ class Test_2Way(unittest.TestCase):
             print("type(customer):%s" % type(customer))
             print("type(customer.orders[0]):%s" % type(customer.orders[0]))
 
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
 
 
 
@@ -378,7 +374,7 @@ class Test_2Way(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -404,7 +400,7 @@ class Test_Speed(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -467,7 +463,7 @@ class Test_Basic(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
     def test_scalar_with_dictionaries(self):
@@ -493,7 +489,7 @@ class Test_Basic(unittest.TestCase):
 
             ppp(data) #!!! remove
             ppp(lookup["custid_%d" % (size-1)]) #!!! remove
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
 
             for customer in customers:
                 #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
@@ -508,7 +504,7 @@ class Test_Basic(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
     def test_compound_keys(self):
@@ -571,7 +567,7 @@ class Test_Basic(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -627,7 +623,7 @@ class Test_Basic(unittest.TestCase):
 
 
         except (Exception,) as e:
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
     def test_custom_setter(self):
@@ -700,7 +696,7 @@ class Test_Basic(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -761,7 +757,7 @@ class Test_Basic(unittest.TestCase):
             print("type(customer.address):%s" % type(tcustomer.address))
             print("type(customer.orders[0]):%s" % type(tcustomer.orders[0]))
 
-            # ppdb()
+            # cpdb()
 
 
 
@@ -783,7 +779,7 @@ class Test_Basic(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -823,7 +819,7 @@ class Test_Basic(unittest.TestCase):
             print("type(customer.address):%s" % type(customer.address))
             print("type(customer.orders[0]):%s" % type(customer.orders[0]))
 
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
 
 
 
@@ -842,7 +838,7 @@ class Test_Basic(unittest.TestCase):
 
         except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -850,7 +846,7 @@ class Test_Basic(unittest.TestCase):
 if __name__ == '__main__':
     #conditional debugging, but not in nosetests
     if "--pdb" in sys.argv:
-        ppdb.enabled = not sys.argv[0].endswith("nosetests")
+        cpdb.enabled = not sys.argv[0].endswith("nosetests")
         sys.argv.remove("--pdb")
 
     sys.exit(unittest.main())

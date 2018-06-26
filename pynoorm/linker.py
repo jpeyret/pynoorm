@@ -9,9 +9,10 @@ from .utils import SlotProxy
 import pdb
 from traceback import print_exc as xp
 
-def ppdb():
+def cpdb():
     """do-nothing debugger test"""
-    pass
+    return cpdb.enabled
+cpdb.enabled = False
 ########### debugging aids ##################
 
 
@@ -44,7 +45,7 @@ class LinkResultHelper(object):
             li = self.right_orphans
             return self._initialize(li, self.attrname_on_right, self.type_on_right)
         except (Exception,) as e:    #pragma: no cover
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
     def _initialize(self, li, attrname, type_):
@@ -69,7 +70,7 @@ class LinkResultHelper(object):
             li = list(self.left.values())
             return self._initialize(li, self.attrname_on_left, self.type_on_left)
         except (Exception,) as e: #pragma: no cover
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
 
@@ -111,7 +112,7 @@ class Linker(object):
                     raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
 
         except (Exception,) as e: #pragma: no cover
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
     def dict_from_list(self, li):
@@ -136,7 +137,7 @@ class Linker(object):
                 #NOTE:  at this point, if we used a list instead of a simple assignment could we do m-n?
                 di_left[keyval] = o_left
             except (Exception,) as e:    #pragma: no cover
-                if ppdb(): pdb.set_trace()
+                if cpdb(): pdb.set_trace()
                 raise
 
         return di_left
@@ -206,7 +207,7 @@ class Linker(object):
                     setter_right(o_right, attrname_on_right, o_left)
 
         except (Exception,) as e:    #pragma: no cover
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
         else:
             return self.helper
@@ -244,7 +245,7 @@ class Linker(object):
                     raise NotImplementedError()
 
         except (Exception,) as e:  #pragma: no cover
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
 
     supported_target_types = [list, None]
@@ -305,5 +306,5 @@ class Linker(object):
                     raise TypeError("unsupported target type:%s.  Supported are: %s" % (type_on_tgt, self.supported_target_types))
 
         except (Exception,) as e:    #pragma: no cover
-            if ppdb(): pdb.set_trace()
+            if cpdb(): pdb.set_trace()
             raise
