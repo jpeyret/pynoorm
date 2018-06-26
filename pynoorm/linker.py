@@ -175,8 +175,6 @@ class Linker(object):
 
         try:
 
-            print "%sLinker2.link%s" % ("*"*80 + "\n", "\n"+ "*"*80)
-
             self.helper = LinkResultHelper(**locals())
 
             try:
