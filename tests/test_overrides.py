@@ -97,7 +97,7 @@ class OverrideDict(object):
     def setter_attr_from_object(self, o_left, attrname, o_right):
         try:
             for attrname_l, attrname_r in self._mapping:
-                o_left[attrname_l] = getattr(o_right, attrname_r, None)
+                o_left[attrname_l] = getattr(o_right, attrname_r)
         except (Exception,) as e:
             if cpdb(): pdb.set_trace()
             raise
@@ -116,6 +116,14 @@ class OverrideDict(object):
             if cpdb(): pdb.set_trace()
             raise
 
+    def link(self, linker, data):
+        try:
+            linker.link(self, data, attrname_on_left="ignore", setter_left=self.setter)
+        except (Exception,) as e:
+            if cpdb(): pdb.set_trace()
+            raise
+
+
 
 class Test_SelfLinker(unittest.TestCase):
 
@@ -126,7 +134,7 @@ class Test_SelfLinker(unittest.TestCase):
             ,Customer(custid="custC", tax=3.0, state="C")
         ]
 
-        self.customer_rate_overrides = [
+        self.customer_rates_overrides = [
             Customer(custid="custB", tax=2.0, state="B")
             ,Customer(custid="custD", tax=4.0, state="D")
         ]
@@ -138,32 +146,79 @@ class Test_SelfLinker(unittest.TestCase):
             linker = Linker(key_left="custid")
 
             #make a lookup dictionary point to customers by custid
-            lookup = OverrideDict(attrnames="tax", source_right=dict)
+            lookup = OverrideDict(attrnames="tax")
 
-            linker.link(lookup, self.customer_rates, attrname_on_left="tax", setter_left=lookup.setter_attr_from_object)
-            linker.link(lookup, self.customer_rate_overrides, attrname_on_left="tax", setter_left=lookup.setter_attr_from_object)
+            linker.link(lookup, self.customer_rates, attrname_on_left="tax", setter_left=lookup.setter)
+            linker.link(lookup, self.customer_rates_overrides, attrname_on_left="tax", setter_left=lookup.setter)
+
+            di_data = lookup.get_workdict_as_objects()
+
+            lookup = OverrideDict(attrnames="tax")
+
+
+            lookup.link(linker, self.customer_rates)
+            lookup.link(linker, self.customer_rates_overrides)
+
+            di_data2 = lookup.get_workdict_as_objects()
 
             self.assertFalse(linker.helper.right_orphans)
 
-            di_data = lookup.get_workdict_as_objects()
 
             for cntr, id_ in enumerate("ABCD"):
                 exp = float(cntr+1)
                 key = "cust%s" % id_
+
+                #version 1. direct
                 inst = di_data[key]
-
                 got = inst.tax
-
-                msg = "%s.exp:%s:<>:%s:got" % (key, exp, got)
-
+                msg = "explicit.%s.exp:%s:<>:%s:got" % (key, exp, got)
                 self.assertEqual(exp, got, msg)
 
-            pass
+                #version 2. link on lookup
+                inst = di_data2[key]
+                got = inst.tax
+                msg = "implicit.%s.exp:%s:<>:%s:got" % (key, exp, got)
+                self.assertEqual(exp, got, msg)
+
         except (Exception,) as e:
             if cpdb(): pdb.set_trace()
             raise
 
 
+    def test_tax_state(self):
+        try:
+            #create the linker and tell it what the left-hand key will be
+            linker = Linker(key_left="custid")
+
+            #make a lookup dictionary point to customers by custid
+            lookup = OverrideDict(attrnames=["tax","state"])
+
+            lookup.link(linker, self.customer_rates)
+            lookup.link(linker, self.customer_rates_overrides)
+
+            di_data = lookup.get_workdict_as_objects()
+
+            self.assertFalse(linker.helper.right_orphans)
+
+
+            for cntr, id_ in enumerate("ABCD"):
+                exp = float(cntr+1)
+                key = "cust%s" % id_
+
+                inst = di_data[key]
+
+                got = inst.tax
+                msg = "explicit.%s.tax.exp:%s:<>:%s:got" % (key, exp, got)
+                self.assertEqual(exp, got, msg)
+
+                exp = id_
+                got = inst.state
+                msg = "implicit.%s.state.exp:%s:<>:%s:got" % (key, exp, got)
+                self.assertEqual(exp, got, msg)
+
+        except (Exception,) as e:
+            if cpdb(): pdb.set_trace()
+            raise
 
 
 
