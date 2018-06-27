@@ -841,6 +841,36 @@ class Test_Basic(unittest.TestCase):
             if cpdb(): pdb.set_trace()
             raise
 
+    def test_basic_015_empty_right(self):
+        data = get_sample_data(customer_pk="custid", shuffle=False)
+
+        customers = data.customers
+
+        try:
+            linker = Linker(key_left="custid")
+            lookup = linker.dict_from_list(customers)
+            result = linker.link(lookup, [], attrname_on_left="orders")
+            self.assertTrue("empty right" in str(result.exception))
+
+        except (Exception,) as e: #!!!
+            logger.error(repr(e)[:100])
+            if cpdb(): pdb.set_trace()
+            raise
+
+    def test_basic_016_empty_left(self):
+        data = get_sample_data(customer_pk="custid", shuffle=False)
+
+        try:
+            linker = Linker(key_left="custid")
+            lookup = linker.dict_from_list([])
+            result = linker.link(lookup, data.orders, attrname_on_left="orders")
+            self.assertTrue("empty left" in str(result.exception))
+
+        except (Exception,) as e: #!!!
+            logger.error(repr(e)[:100])
+            if cpdb(): pdb.set_trace()
+            raise
+
 
 
 if __name__ == '__main__':

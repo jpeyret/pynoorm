@@ -92,7 +92,7 @@ class Test_SelfLinker(unittest.TestCase):
 
             self.assertFalse(linker.helper.right_orphans)
 
-            di_data3 = lookup.as_dictionaries()
+            di_data3 = lookup.as_dict()
 
 
             for cntr, id_ in enumerate("ABCD"):

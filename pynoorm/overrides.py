@@ -91,7 +91,7 @@ class Overrides(object):
             if cpdb(): pdb.set_trace()
             raise
 
-    def as_dictionaries(self):
+    def as_dict(self):
         """return overrides as dictionaries"""
         try:
             return self._dict.copy()

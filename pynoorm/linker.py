@@ -189,8 +189,17 @@ class Linker(object):
             if not hasattr(right, "next"):
                 right = iter(right)
 
-            sample_right = right.next()
-            sample_left = left.values()[0]
+            try:
+                sample_right = right.next()
+            except (StopIteration,) as e:
+                self.helper.exception = ValueError("empty right", e)
+                return self.helper
+
+            try:
+                sample_left = left.values()[0]
+            except (IndexError,) as e:
+                self.helper.exception = ValueError("empty left", e)
+                return self.helper
 
             #and use the samples to figure out getters and setters
             get_key = self._get_getter(sample_right, key_right)
