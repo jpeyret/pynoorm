@@ -30,6 +30,19 @@ def cpdb(e=None):
     return cpdb.enabled
 
 cpdb.enabled = False
+
+pretty = pprint.PrettyPrinter(indent=2)
+def ppp(obj):
+    if not isinstance(obj, (list, dict)):
+        di = vars(obj)
+        try:
+            del di["_classname"]
+        except KeyError:
+            pass
+        pretty.pprint(di)
+    else:
+        pretty.pprint(obj)
+        
 ###################################
 
 
@@ -37,14 +50,12 @@ size = 3
 SHUFFLE_BY_DEFAULT = False
 
 
-
-
 class DummyObject(object):
     """demos __getitem__, getattr precedence"""
+
     def __init__(self, _classname=None, **kwds):
         self.__dict__.update(**kwds)
         self._classname = _classname or self.__class__.__name__
-
 
     def __repr__(self):
         di = self.__dict__.copy()
@@ -148,25 +159,6 @@ def get_sample_data(customer_pk, order_fk=None, address_fk=None, shuffle=SHUFFLE
 
     return res
 
-import inspect #!!! remove
-
-pretty = pprint.PrettyPrinter(indent=2)
-
-def methi(aMethod):             #!!! remove
-    print (inspect.getargspec(aMethod)) #!!! remove
-
-pretty = pprint.PrettyPrinter(indent=2)
-def ppp(obj):
-    if not isinstance(obj, (list, dict)):
-        di = vars(obj)
-        try:
-            del di["_classname"]
-        except KeyError:
-            pass
-
-        pretty.pprint(di)
-    else:
-        pretty.pprint(obj)
 
 class Test_2Way(unittest.TestCase):
 
@@ -866,7 +858,7 @@ class Test_Basic(unittest.TestCase):
             result = linker.link(lookup, data.orders, attrname_on_left="orders")
             self.assertTrue("empty left" in str(result.exception))
 
-        except (Exception,) as e: #!!!
+        except (Exception,) as e:
             logger.error(repr(e)[:100])
             if cpdb(): pdb.set_trace()
             raise

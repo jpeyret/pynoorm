@@ -132,6 +132,7 @@ class Binder(object):
         :param paramstyle: parameter style string as per PEP-249
         :case_insensitive: %(custid)s will match {"custid":1} or {"CUSTID":2}, with priority
         going to the initial case.  mixed-case keys (custId) will only match {"custId":3}
+
         """
 
         try:
@@ -349,6 +350,7 @@ class BinderNamed(Binder):
         =>
         "select * from foo where bar = :somebar "
         {"somebar" : value-found-for-somebar}
+        
         """
 
         self.sub = {}
