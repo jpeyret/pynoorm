@@ -182,10 +182,20 @@ class Binder(object):
             got = self._get_from_args(key)
 
             if not isinstance(got, (list, set)):
-                self.tqry = self.tqry.replace(hit, hit[:-1] + "s")
+                raise ValueError(
+                    "list substitutions require an iterable parameter: `%s` was of type `%s`" 
+                    % (key, type(got))
+                    )
+                #
+                # self.tqry = self.tqry.replace(hit, hit[:-1] + "s")
             else:
 
                 li = []
+                if not got:
+                    #empty list or set
+                    self.tqry = self.tqry.replace(hit, "NULL")
+                    continue
+
                 for ix, val in enumerate(got):
                     ikeyname = self.T_LIST_KEYNAME % (key, ix)
                     ikeyname_sub = "%%(%s)s" % (ikeyname)
