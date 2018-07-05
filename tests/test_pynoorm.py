@@ -15,11 +15,19 @@ import logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
+### debugging #####################
+
+from traceback import print_exc as xp
+
+#interactive debugging pass `--pdb` on command line to use
 def cpdb():
     return cpdb.enabled
 cpdb.enabled = False
 import pdb
 
+from testhelper import differ
+
+#############################
 
 def parse_res(cursor, li_fetched):
     "simplistic parser for fetched cursor data"
@@ -184,47 +192,56 @@ class BinderHelper(object):
                all bind parameters are found in the first 2 arguments
         """
 
-        for custid in self.li_custid:
-            self.custid = custid
+        try:
 
-            for ordernum in range(0, self.num_orders):
-                #custid will come from the first argument, self
-                di = dict(custid="badcustid")
-                di.update(dict(ordernum=ordernum))
+            for custid in self.li_custid:
+                self.custid = custid
 
-                di["sku"] = "sku.%s.%s" % (ordernum, custid)
+                for ordernum in range(0, self.num_orders):
+                    #custid will come from the first argument, self
+                    di = dict(custid="badcustid")
+                    di.update(dict(ordernum=ordernum))
 
-                #precedence over that of self.defaults
-                di["qty"] = 42
+                    di["sku"] = "sku.%s.%s" % (ordernum, custid)
+
+                    #precedence over that of self.defaults
+                    di["qty"] = 42
 
 
 
-                qry, sub = self.binder.format(
-                    self.tqry_ins,
-                    self,
-                    di,
-                    self.defaults,
-                    )
+                    qry, sub = self.binder.format(
+                        self.tqry_ins,
+                        self,
+                        di,
+                        self.defaults,
+                        )
 
-                #check the substitions
-                # values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
-                if self.type_sub == tuple:
-                    exp = (self.custid, ordernum, di["sku"], di["qty"], self.defaults.status)
-                    self.assertEqual(exp, sub)
+                    #check the substitions
+                    # values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
+                    if self.type_sub == tuple:
+                        exp = (self.custid, ordernum, di["sku"], di["qty"], self.defaults.status)
+                        self.assertEqual(exp, sub)
 
-                elif self.type_sub == dict:
-                    exp = dict(
-                        custid=self.custid,
-                        ordernum=ordernum,
-                        sku=di["sku"],
-                        qty=di["qty"])
-                    self.assertEqual(exp, sub)
+                    elif self.type_sub == dict:
+                        exp = dict(
+                            custid=self.custid,
+                            ordernum=ordernum,
+                            sku=di["sku"],
+                            status=self.defaults.status,
+                            qty=di["qty"])
 
-                if self.cursor:
-                    self.cursor.execute(qry, sub)
-                else:
-                    logger.info("%s execute skipped - no cursor" % (self))
-                    return
+                        #get a nice explicit message
+                        msg = differ.get_diff(exp, sub, self)
+                        self.assertEqual(exp, sub, msg)
+
+                    if self.cursor:
+                        self.cursor.execute(qry, sub)
+                    else:
+                        logger.info("%s execute skipped - no cursor" % (self))
+                        return
+        except (Exception,) as e:
+            if cpdb(): pdb.set_trace()
+            raise
 
     def test_001_select(self):
         """... select the data inserted in test_000_insert"""
@@ -974,11 +991,8 @@ class CaseInsensitiveMixin(object):
         custid = self.li_custid[1]
         ordernum = 7
 
-        # tqry_ins = """insert into orders(custid, ordernum, sku, qty)
-        # values (%(custid)s, %(ordernum)s, %(ordernum)s, %(qty)s)"""
-
-        tqry_ins = TQRY_INS_ORDERS
-
+        tqry_ins = """insert into orders(custid, ordernum, sku, qty)
+        values (%(custid)s, %(ordernum)s, %(ordernum)s, %(qty)s)"""
 
         qry, sub = self.binder.format(tqry_ins,
             dict(
@@ -986,16 +1000,23 @@ class CaseInsensitiveMixin(object):
                 ORDERNUM=ordernum,
                 CUSTID=custid,
                 QTY=0,
+                status=self.defaults.status,
                 )
         )
 
-        if self.type_sub == tuple:
-            exp = (custid, ordernum, ordernum, 0)
-            self.assertEqual(exp, sub)
+        try:
 
-        elif self.type_sub == dict:
-            exp = dict(custid=custid, ordernum=ordernum, qty=0)
-            self.assertEqual(exp, sub)
+            if self.type_sub == tuple:
+                exp = (custid, ordernum, ordernum, 0)
+                self.assertEqual(exp, sub)
+
+            elif self.type_sub == dict:
+                exp = dict(custid=custid, ordernum=ordernum, qty=0)
+                self.assertEqual(exp, sub)
+
+        except (AssertionError,) as e2:
+            if cpdb(): pdb.set_trace()
+            raise
 
         self.check_query(tqry_ins, qry)
 
@@ -1085,4 +1106,12 @@ class DryRunTest_MSSQL_CaseInsensitive(BinderHelper, unittest.TestCase, CaseInse
 
 if __name__ == '__main__':
     import sys
+
+    #interactive debug
+    debug_flag = "--pdb"
+    if debug_flag in sys.argv:
+        sys.argv.remove(debug_flag)
+        cpdb.enabled = True
+
+
     sys.exit(unittest.main())
