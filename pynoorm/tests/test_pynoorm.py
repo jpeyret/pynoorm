@@ -25,7 +25,7 @@ def cpdb():
 cpdb.enabled = False
 import pdb
 
-from helper_diff import differ
+from pynoorm.tests.helper_diff import differ
 
 #############################
 
