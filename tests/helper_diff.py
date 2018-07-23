@@ -54,7 +54,7 @@ class Differ(object):
             lines2 = list(lines)
             msg = "\n".join(_legend + lines2)
             return msg
-        except Exception, e:
+        except (Exception,) as e:
             raise
 
 differ = Differ()
