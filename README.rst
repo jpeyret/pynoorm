@@ -64,7 +64,7 @@ Simple **sqlite3** example::
 	>>> print(parameters)
 	('ACME',)
 
-Oracle, with mutiple parameters ::
+Oracle, with multiple parameters ::
 
     import cx_Oracle
     binder_ora = Binder.factory(cx_Oracle.paramstyle)
@@ -79,6 +79,43 @@ Oracle, with mutiple parameters ::
     select * from orders where custid = :custid and has_shipped = :shipped
     >>> print(parameters)
     {'shipped': 1, 'custid': 'AMAZON'}
+
+SQL IN list criteria:
+
+This allows binding of Python lists as standard SQL ``in ('foo','bar')`` expressions, but as a prepared statement.
+
+It relies on using `'l'`, rather than `'s'` as the format qualifier.  Notice the `%(custid)l` below ::
+
+    from pynoorm.binder import Binder
+    binder = Binder.factory("qmark")
+
+    query, parameters = binder(
+        "select * from orders where custid in (%(custid)l)"
+        , dict(custid=["ACME","FOO","BAR"])
+        )
+
+
+Contents of `query` and `parameters`::
+    
+    select * from orders where custid in (?, ?, ?)
+    ('ACME', 'FOO', 'BAR')
+    
+
+And now with an empty list::
+
+    query, parameters = binder(
+        """select * 
+        from orders 
+        where custid in (%(custid)l) 
+        and status=%(status)s"""
+        , dict(custid=[], status="any")
+        )
+
+Contents of `query` and `parameters`::
+
+
+    select * from orders where custid in (NULL) and status=?
+    ('any',)
 
 
 
