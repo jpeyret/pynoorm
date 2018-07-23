@@ -36,7 +36,7 @@ from pynoorm.overrides import Overrides
 
 
 
-from test_linker import ppp, Customer
+from pynoorm.tests.test_linker import ppp, Customer
 
 
 
