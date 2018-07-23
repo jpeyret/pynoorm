@@ -4,6 +4,8 @@ import collections
 from six import string_types
 
 from .utils import SlotProxy
+from itertools import islice
+
 
 ########### debugging aids ##################
 import pdb
@@ -186,22 +188,20 @@ class Linker(object):
             key_right = key_right or key_left
 
             #grab some sample objects from left and right
-            if not hasattr(right, "next"):
-                right = iter(right)
-
+            #and use the samples to figure out getters and setters
             try:
-                sample_right = right.next()
+                sample_left = next(iter(left.values()))
+            except (StopIteration,) as e:
+                self.helper.exception = ValueError("empty left", e)
+                return self.helper
+
+            it_right = iter(right)
+            try:
+                sample_right = next(it_right)
             except (StopIteration,) as e:
                 self.helper.exception = ValueError("empty right", e)
                 return self.helper
 
-            try:
-                sample_left = left.values()[0]
-            except (IndexError,) as e:
-                self.helper.exception = ValueError("empty left", e)
-                return self.helper
-
-            #and use the samples to figure out getters and setters
             get_key = self._get_getter(sample_right, key_right)
             setter_left = setter_left or self._get_setter(
                 sample_left, attrname_on_left
@@ -220,7 +220,7 @@ class Linker(object):
                 prepped = self._preppedlinkleft
 
             #finally, call the actual link, on the sample, then the rest
-            for right_ in [[sample_right],right]:
+            for right_ in [[sample_right],it_right]:
 
                 prepped(left=left, right=right_
                     ,attrname_on_left=attrname_on_left

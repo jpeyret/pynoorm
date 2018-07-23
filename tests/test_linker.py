@@ -811,9 +811,6 @@ class Test_Basic(unittest.TestCase):
             print("type(customer.address):%s" % type(customer.address))
             print("type(customer.orders[0]):%s" % type(customer.orders[0]))
 
-            if cpdb(): pdb.set_trace()
-
-
 
             for customer in customers:
                 #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
@@ -859,6 +856,29 @@ class Test_Basic(unittest.TestCase):
             self.assertTrue("empty left" in str(result.exception))
 
         except (Exception,) as e:
+            logger.error(repr(e)[:100])
+            if cpdb(): pdb.set_trace()
+            raise
+
+
+    def test_basic_017_left_length1(self):
+        data = get_sample_data(customer_pk="custid", shuffle=False)
+
+        customers = [data.customers[0]]
+        orders = data.orders
+        # pdb.set_trace()
+
+        try:
+            linker = Linker(key_left="custid")
+            lookup = linker.dict_from_list(customers)
+            result = linker.link(lookup, orders, attrname_on_left="orders")
+
+            for customer in customers:
+                #each customer gets as many orders a  its sequence, i.e. customer 2 gets 2 orders
+                self.assertTrue(customer["xref"])
+
+
+        except (Exception,) as e: #!!!
             logger.error(repr(e)[:100])
             if cpdb(): pdb.set_trace()
             raise

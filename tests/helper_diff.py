@@ -12,15 +12,15 @@ class Differ(object):
     def __init__(self):
         self._differ = difflib.Differ()
 
-    def get_diff(self, exp, got, legend=True, testee=""):
+    def get_diff(self, exp, got, testee="", legend=True):
         if isinstance(exp, basestring) and isinstance(got, basestring):
-            return self._get_diff(exp, got)
+            return self._get_diff(exp, got, testee ,legend)
 
         elif isinstance(exp, dict) and isinstance(got, dict):
 
             exp2 = format_dict(exp)
             got2 = format_dict(got)
-            return self._get_diff(exp2, got2)  
+            return self._get_diff(exp2, got2, testee ,legend)  
 
         elif isinstance(exp, list) and isinstance(got, list):
 
@@ -28,7 +28,7 @@ class Differ(object):
             got2 = "\n".join([str(val) for val in got])
 
 
-            return self._get_diff(exp2, got2)  
+            return self._get_diff(exp2, got2, testee ,legend)  
 
 
         raise NotImplementedError()

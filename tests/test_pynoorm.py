@@ -25,7 +25,7 @@ def cpdb():
 cpdb.enabled = False
 import pdb
 
-from testhelper import differ
+from helper_diff import differ
 
 #############################
 
