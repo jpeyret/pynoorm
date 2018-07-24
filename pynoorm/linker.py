@@ -4,7 +4,6 @@ import collections
 from six import string_types
 
 from .utils import SlotProxy
-from itertools import islice
 
 
 ########### debugging aids ##################

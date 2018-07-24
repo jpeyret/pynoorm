@@ -5,6 +5,11 @@ test_pynoorm
 ----------------------------------
 
 Tests for `pynoorm` module.
+
+Note: you can activate pdb breakpoints by adding `--pdb` to the command line.
+This script will strip it out of sys.argv if present so that it doesn't interfere
+with unittests argument expectations.
+
 """
 
 import unittest
