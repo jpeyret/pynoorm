@@ -129,7 +129,7 @@ Features
 
 
 The Linker class
-============
+================
 
 A Linker allows you to join objects or dictionaries without the need for an ORM.  You can think of it as performing `parent-child` linking, but it uses `left-right` instead as a more neutral terminology instead.
 
