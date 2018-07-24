@@ -5,12 +5,22 @@ PyNoORM
 .. image:: https://img.shields.io/pypi/v/pynoorm.svg
         :target: https://pypi.python.org/pypi/pynoorm
 
+
 .. image:: https://img.shields.io/travis/jpeyret/pynoorm.svg
         :target: https://travis-ci.org/jpeyret/pynoorm
 
 .. image:: https://readthedocs.org/projects/pynoorm/badge/?version=latest
         :target: https://readthedocs.org/projects/pynoorm/?badge=latest
         :alt: Documentation Status
+
+Note on Python 3.7 support:
+---------------------------
+
+3.7 tests run to success locally, but travis-ci does not support Python 3.7 yet.  So expect `builds` to show
+failing 3.7, pending resolution of Travisissue485_.
+
+
+.. _Travisissue485: https://github.com/jopohl/urh/pull/485
 
 
 Use Python with or without an ORM.
@@ -174,6 +184,7 @@ Features
     * takes basic Python objects so can join across different databases, allowing for example tagging of objects in a read-only database
     * allows compound field keys and aliasing
     * orphans, on the left or the right, can be initialized with empty attribute values.
+
 
 
 Credits
