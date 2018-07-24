@@ -13,15 +13,6 @@ PyNoORM
         :target: https://readthedocs.org/projects/pynoorm/?badge=latest
         :alt: Documentation Status
 
-Note on Python 3.7 support:
----------------------------
-
-3.7 tests run to success locally, but travis-ci does not support Python 3.7 yet.  So expect `builds` to show
-failing 3.7, pending resolution of Travisissue485_.
-
-
-.. _Travisissue485: https://github.com/jopohl/urh/pull/485
-
 
 Use Python with or without an ORM.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -138,7 +129,7 @@ Features
 
 
 The Linker class
-============
+================
 
 A Linker allows you to join objects or dictionaries without the need for an ORM.  You can think of it as performing `parent-child` linking, but it uses `left-right` instead as a more neutral terminology instead.
 
@@ -185,6 +176,14 @@ Features
     * allows compound field keys and aliasing
     * orphans, on the left or the right, can be initialized with empty attribute values.
 
+
+Note on Python 3.7 support:
+---------------------------
+
+3.7 tests run to success locally, but travis-ci does not support Python 3.7 yet.  So expect `builds` to show
+"failing" 3.7, pending resolution of Travisissue485_.
+
+.. _Travisissue485: https://github.com/jopohl/urh/pull/485
 
 
 Credits
