@@ -12,6 +12,12 @@ PyNoORM
         :target: https://readthedocs.org/projects/pynoorm/?badge=latest
         :alt: Documentation Status
 
+Note on Python 3.7 support:
+---------------------------
+
+3.7 tests run to success locally, but travis-ci does not support Python 3.7 yet.  So expect `builds` to show
+"failing" 3.7, pending resolution of Travis issue #485.
+
 
 Use Python with or without an ORM.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
