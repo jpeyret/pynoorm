@@ -177,6 +177,13 @@ Features
     * orphans, on the left or the right, can be initialized with empty attribute values.
 
 
+Note on Python 3.7 support:
+---------------------------
+
+3.7 tests run to success locally, but travis-ci does not support Python 3.7 yet.  So expect `builds` to show
+"failing" 3.7, pending resolution of Travis issue #485.
+
+
 Credits
 ---------
 
