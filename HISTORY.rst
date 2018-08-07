@@ -22,3 +22,10 @@ History
 
 * Added SQL Server support
 * Added Linker class to support object cross-referencing
+
+0.4.0 (2018-07-24)
+------------------
+
+* Updating to Beta status
+* Optimized Linker class
+* Python list => SQL IN (xxx, yyy) functionality on Binder.

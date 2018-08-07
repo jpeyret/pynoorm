@@ -1,3 +1,15 @@
+
+###################################################################
+# Python 2 to 3.  !!!TODO!!!p4- Simplify after Python support ends.
+###################################################################
+try:
+    _ = basestring
+except (NameError,) as e:
+    basestring = str
+###################################################################
+
+
+
 from pynoorm.binder import Binder_pyformat
 
 
