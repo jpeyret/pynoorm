@@ -29,3 +29,8 @@ History
 * Updating to Beta status
 * Optimized Linker class
 * Python list => SQL IN (xxx, yyy) functionality on Binder.
+
+0.4.1 (2018-08-07)
+------------------
+
+* adjusted for Python 3 
