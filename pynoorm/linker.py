@@ -86,6 +86,7 @@ class Linker(object):
 
     TYPE_SCALAR = None
 
+
     def __init__(self, key_left):
         """key_left is either a string or tuple of strings
            stating which attributes/keys on future objects
@@ -93,6 +94,11 @@ class Linker(object):
            ex:  ("custid","order_id") for CustomerOrder Table
         """
         self.key_left = key_left
+
+
+    def __repr__(self):
+        return "% on fields %s" % (self.__class__.__name__, self.key_left)
+
 
     def _get_getter(self, obj, key):
         """returns a getter function appropriate for the getitem/getattr support in `obj`"""
