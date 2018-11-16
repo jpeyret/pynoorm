@@ -17,6 +17,7 @@ import unittest
 from pynoorm.binder import Binder, PARAMSTYLE_SQLSERVER
 
 import logging
+
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
@@ -24,15 +25,18 @@ logger = logging.getLogger(__name__)
 
 from traceback import print_exc as xp
 
-#interactive debugging pass `--pdb` on command line to use
+# interactive debugging pass `--pdb` on command line to use
 def cpdb():
     return cpdb.enabled
+
+
 cpdb.enabled = False
 import pdb
 
 from pynoorm.tests.helper_diff import differ
 
 #############################
+
 
 def parse_res(cursor, li_fetched):
     "simplistic parser for fetched cursor data"
@@ -47,13 +51,14 @@ def parse_res(cursor, li_fetched):
     return li_parsed
 
 
-#global variables
+# global variables
 qty = 7
 
 
-#supporting objects
+# supporting objects
 class AttrDict(object):
     """demos __getitem__, getattr precedence"""
+
     def __init__(self):
         self.data = {}
 
@@ -63,7 +68,9 @@ class AttrDict(object):
 
 class BasicArgument(object):
     """just used to allow attribute assignment"""
+
     pass
+
 
 TQRY_INS_ORDERS = """insert into orders
                   (custid, ordernum, sku, qty, status)
@@ -82,7 +89,6 @@ class BinderHelper(object):
 
     li_custid = ["ACME", "AMAZON"]
     num_orders = 5
-
 
     tqry_ins = TQRY_INS_ORDERS
 
@@ -127,12 +133,13 @@ class BinderHelper(object):
         if hasattr(cls, "case_insensitive"):
 
             try:
-                cls.binder = Binder.factory(paramstyle=cls.paramstyle, case_insensitive=cls.case_insensitive)
+                cls.binder = Binder.factory(
+                    paramstyle=cls.paramstyle, case_insensitive=cls.case_insensitive
+                )
             except AttributeError as e:
                 if "paramstyle" in str(e):
                     logger.error("%s needs to have a paramstyle set" % (cls))
                 raise
-
 
         else:
             try:
@@ -149,7 +156,6 @@ class BinderHelper(object):
             pass
 
     def check_query(self, query_template, query):
-
         class FindBinds(object):
             def __init__(self, query_template):
                 self.li_key = []
@@ -166,15 +172,12 @@ class BinderHelper(object):
         paramstyle_lookup = getattr(self, "paramstyle_lookup", self.paramstyle)
 
         if self.type_sub == tuple:
-            #could run a regex to count ? or :1, :2...
+            # could run a regex to count ? or :1, :2...
             return
         elif self.type_sub == dict:
 
-            #what is the expected format of the bind param in the query?
-            t_findbind = dict(
-                named=":%s",
-                pyformat="%%(%s)s",
-                )[paramstyle_lookup]
+            # what is the expected format of the bind param in the query?
+            t_findbind = dict(named=":%s", pyformat="%%(%s)s")[paramstyle_lookup]
 
             if "%" in query_template:
                 try:
@@ -203,28 +206,29 @@ class BinderHelper(object):
                 self.custid = custid
 
                 for ordernum in range(0, self.num_orders):
-                    #custid will come from the first argument, self
+                    # custid will come from the first argument, self
                     di = dict(custid="badcustid")
                     di.update(dict(ordernum=ordernum))
 
                     di["sku"] = "sku.%s.%s" % (ordernum, custid)
 
-                    #precedence over that of self.defaults
+                    # precedence over that of self.defaults
                     di["qty"] = 42
 
-
-
                     qry, sub = self.binder.format(
-                        self.tqry_ins,
-                        self,
-                        di,
-                        self.defaults,
-                        )
+                        self.tqry_ins, self, di, self.defaults
+                    )
 
-                    #check the substitions
+                    # check the substitions
                     # values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
                     if self.type_sub == tuple:
-                        exp = (self.custid, ordernum, di["sku"], di["qty"], self.defaults.status)
+                        exp = (
+                            self.custid,
+                            ordernum,
+                            di["sku"],
+                            di["qty"],
+                            self.defaults.status,
+                        )
                         self.assertEqual(exp, sub)
 
                     elif self.type_sub == dict:
@@ -233,9 +237,10 @@ class BinderHelper(object):
                             ordernum=ordernum,
                             sku=di["sku"],
                             status=self.defaults.status,
-                            qty=di["qty"])
+                            qty=di["qty"],
+                        )
 
-                        #get a nice explicit message
+                        # get a nice explicit message
                         msg = differ.get_diff(exp, sub, self)
                         self.assertEqual(exp, sub, msg)
 
@@ -245,7 +250,8 @@ class BinderHelper(object):
                         logger.info("%s execute skipped - no cursor" % (self))
                         return
         except (Exception,) as e:
-            if cpdb(): pdb.set_trace()
+            if cpdb():
+                pdb.set_trace()
             raise
 
     def test_001_select(self):
@@ -254,13 +260,12 @@ class BinderHelper(object):
         custid = self.li_custid[0]
         self.custid = self.li_custid[1]
 
-        #we should expect custid to come from self.li_custid[0]
+        # we should expect custid to come from self.li_custid[0]
         qry, sub = self.binder.format(
-            self.tqry_orders_for_customer,
-            dict(custid=custid),
-            self)
+            self.tqry_orders_for_customer, dict(custid=custid), self
+        )
 
-        #check the substitions
+        # check the substitions
         # values (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s)"""
         if self.type_sub == tuple:
             exp = (custid,)
@@ -305,21 +310,19 @@ class BinderHelper(object):
 
             tqry_ins = TQRY_INS_ORDERS
 
-
-            qry, sub = self.binder.format(tqry_ins,
+            qry, sub = self.binder.format(
+                tqry_ins,
                 dict(
                     sku=sku,
                     ordernum=ordernum,
                     custid=custid,
                     qty=qty,
-                    status=BinderHelper.defaults.status
-                    )
+                    status=BinderHelper.defaults.status,
+                ),
             )
 
-
-            #reminder:
-            #(%(custid)s, %(ordernum)s, %(sku)s, %(qty)s, %(status)s)"""
-
+            # reminder:
+            # (%(custid)s, %(ordernum)s, %(sku)s, %(qty)s, %(status)s)"""
 
             #!!!TODO!!!:  need to unify exp creation
             if self.type_sub == tuple:
@@ -327,7 +330,13 @@ class BinderHelper(object):
                 self.assertEqual(exp, sub)
 
             elif self.type_sub == dict:
-                exp = dict(custid=custid, ordernum=ordernum, sku=sku, qty=0, status=BinderHelper.defaults.status)
+                exp = dict(
+                    custid=custid,
+                    ordernum=ordernum,
+                    sku=sku,
+                    qty=0,
+                    status=BinderHelper.defaults.status,
+                )
                 self.assertEqual(exp, sub)
 
             self.check_query(tqry_ins, qry)
@@ -350,12 +359,13 @@ class BinderHelper(object):
 
             data = parse_res(self.cursor, [res])[0]
 
-            #column type should be respected
+            # column type should be respected
             self.assertNotEqual(data["ordernum"], data["sku"])
             self.assertEqual(data["ordernum"], int(data["sku"]))
 
         except (Exception,) as e:
-            if cpdb(): pdb.set_trace()
+            if cpdb():
+                pdb.set_trace()
             raise
 
     def test_004_item_then_attr(self):
@@ -381,7 +391,7 @@ class BinderHelper(object):
 
             default = dict(qty=0)
 
-            #set up an argument with sku both as an item and an attribute
+            # set up an argument with sku both as an item and an attribute
             item_sku = "item_sku"
             attr_sku = "attr_sku"
 
@@ -392,18 +402,20 @@ class BinderHelper(object):
             test.ordernum = ordernum
             test.status = BinderHelper.defaults.status
 
-            qry, sub = self.binder.format(
-                tqry_ins,
-                test,
-                default,
-                )
+            qry, sub = self.binder.format(tqry_ins, test, default)
 
             if self.type_sub == tuple:
                 exp = (custid, ordernum, item_sku, 0, test.status)
                 self.assertEqual(exp, sub)
 
             elif self.type_sub == dict:
-                exp = dict(custid=custid, ordernum=ordernum, sku=item_sku, qty=0, status=test.status)
+                exp = dict(
+                    custid=custid,
+                    ordernum=ordernum,
+                    sku=item_sku,
+                    qty=0,
+                    status=test.status,
+                )
                 self.assertEqual(exp, sub)
 
             self.check_query(tqry_ins, qry)
@@ -426,11 +438,12 @@ class BinderHelper(object):
 
             data = parse_res(self.cursor, [res])[0]
 
-            #column type should be respected
+            # column type should be respected
             self.assertEqual(data["sku"], item_sku)
 
         except (Exception,) as e:
-            if cpdb(): pdb.set_trace()
+            if cpdb():
+                pdb.set_trace()
             raise
 
     def test_005_missingbind(self):
@@ -439,10 +452,7 @@ class BinderHelper(object):
 
         custid = self.li_custid[1]
 
-        di_substit = dict(
-                sku="somesku",
-                qty=13,
-                )
+        di_substit = dict(sku="somesku", qty=13)
         try:
             qry, sub = self.binder.format(self.tqry_ins, di_substit, locals())
             self.fail("should have thrown KeyError(ordernum)")
@@ -455,17 +465,10 @@ class BinderHelper(object):
         custid = self.li_custid[0]
         ordernum = 1006
 
-        di_substit = dict(
-                sku="somesku",
-                status=BinderHelper.status_shipped,
-                )
-        qry, sub = self.binder.format(
-            self.tqry_ins,
-            di_substit,
-            locals(),
-            globals())
+        di_substit = dict(sku="somesku", status=BinderHelper.status_shipped)
+        qry, sub = self.binder.format(self.tqry_ins, di_substit, locals(), globals())
 
-        #qty is coming from the module-level global value
+        # qty is coming from the module-level global value
 
         if self.type_sub == tuple:
             self.assertTrue(7 in sub)
@@ -482,7 +485,7 @@ class BinderHelper(object):
         qry, sub = self.binder.format(tqry_safe, self, locals(), globals())
         self.assertEqual(qry, tqry_safe)
 
-        #and you can also not pass in any arguments
+        # and you can also not pass in any arguments
         qry, sub = self.binder.format(tqry_safe)
         self.assertEqual(qry, tqry_safe)
 
@@ -493,7 +496,7 @@ class BinderHelper(object):
 
         custid = "x' or 'a' = 'a"
 
-        #we are not using binds here, just a dumb direct substitution
+        # we are not using binds here, just a dumb direct substitution
         qry_unsafe = tqry_unsafe % locals()
 
         qry, sub = self.binder.format(qry_unsafe, self, locals(), globals())
@@ -508,10 +511,7 @@ class BinderHelper(object):
         tqry = """select * from orders where custid like %(crit_custid)s """
 
         crit_custid = "AC%"
-        qry, parameters = self.binder.format(
-            tqry,
-            dict(crit_custid=crit_custid),
-            self,)
+        qry, parameters = self.binder.format(tqry, dict(crit_custid=crit_custid), self)
 
         if self.type_sub == tuple:
             self.assertTrue(crit_custid in parameters)
@@ -529,7 +529,7 @@ class BinderHelper(object):
 
         data = parse_res(self.cursor, [res])[0]
 
-        #column type should be respected
+        # column type should be respected
         self.assertEqual(data["custid"], "ACME")
 
     def test_010_list_substit(self):
@@ -547,18 +547,17 @@ class BinderHelper(object):
                   from orders
                   where custid = %(custid)s and status in (%(status_list)l)"""
 
-        #where to count in the sequence-based subs
+        # where to count in the sequence-based subs
         offset_status_list = 1
 
-        ABC = 'ABC'
+        ABC = "ABC"
 
-        li = [ABC, 'XYZ']
-        #we should expect custid to come from self.li_custid[0]
+        li = [ABC, "XYZ"]
+        # we should expect custid to come from self.li_custid[0]
         try:
             qry, sub = self.binder.format(
-                tqry,
-                dict(custid=custid, status_list=li),
-                self)
+                tqry, dict(custid=custid, status_list=li), self
+            )
         except (Exception,) as e:
             raise
 
@@ -576,10 +575,10 @@ class BinderHelper(object):
                 if self.type_sub == dict:
                     self.assertEqual(value, sub.get(keyname))
                 if self.type_sub == tuple:
-                    self.assertEqual(value, sub[ix+offset_status_list])
+                    self.assertEqual(value, sub[ix + offset_status_list])
             except AssertionError:
-                print ("keyname:%s:" % (keyname))
-                print ("sub:%s" % str(sub))
+                print("keyname:%s:" % (keyname))
+                print("sub:%s" % str(sub))
                 raise
 
             s_exp.add(keyname)
@@ -602,26 +601,25 @@ class BinderHelper(object):
                   from orders
                   where custid = %(custid)s and status in (%(status_list)l)"""
 
-        ABC = 'ABC'
+        ABC = "ABC"
 
-        li = 'XYZ'
-        #we should expect custid to come from self.li_custid[0]
+        li = "XYZ"
+        # we should expect custid to come from self.li_custid[0]
         try:
             qry, sub = self.binder.format(
-                tqry,
-                dict(custid=custid, status_list=li),
-                self)
+                tqry, dict(custid=custid, status_list=li), self
+            )
         except (ValueError,) as e:
-            #the binder should complain that it did not actually get a list or set
+            # the binder should complain that it did not actually get a list or set
             try:
                 self.assertTrue(" iterable " in str(e))
                 self.assertTrue("`status_list`" in str(e))
             except (Exception,) as e:
-                if cpdb(): pdb.set_trace()
+                if cpdb():
+                    pdb.set_trace()
                 raise
         except (Exception,) as e:
             raise
-
 
     def test_012_list_substit_multiple(self):
         """...check list substitutions"""
@@ -640,7 +638,7 @@ class BinderHelper(object):
                   and delay_reason in (%(reasons)l)
                   """
 
-        ABC = 'ABC'
+        ABC = "ABC"
 
         NOTAVAIL = "NOTAVAIL"
         DISCONTINUED = "DISCONTINUED"
@@ -652,13 +650,11 @@ class BinderHelper(object):
         offset_status_list = 1
         offset_reason_list = offset_status_list + len(status_list)
 
-
-        #we should expect custid to come from self.li_custid[0]
+        # we should expect custid to come from self.li_custid[0]
         try:
             qry, sub = self.binder.format(
-                tqry,
-                dict(custid=custid, status_list=status_list),
-                self)
+                tqry, dict(custid=custid, status_list=status_list), self
+            )
         except (Exception,) as e:
             raise
 
@@ -680,10 +676,9 @@ class BinderHelper(object):
                 if self.type_sub == tuple:
                     self.assertEqual(value, sub[ix + offset_status_list])
 
-
             except AssertionError:
-                print ("keyname:%s:" % (keyname))
-                print ("sub:%s" % (sub))
+                print("keyname:%s:" % (keyname))
+                print("sub:%s" % (sub))
                 raise
 
             s_exp.add(keyname)
@@ -696,25 +691,22 @@ class BinderHelper(object):
                 if self.type_sub == tuple:
                     self.assertEqual(value, sub[ix + offset_reason_list])
 
-
             except AssertionError:
-                print ("keyname:%s:" % (keyname))
-                print ("sub:%s" % (sub))
+                print("keyname:%s:" % (keyname))
+                print("sub:%s" % (sub))
                 raise
 
             s_exp.add(keyname)
 
         if self.type_sub == dict:
-            s_bind = (
-                set([k for k in sub.keys() if "status_list" in k]) |
-                set([k for k in sub.keys() if "reasons" in k])
-                )
+            s_bind = set([k for k in sub.keys() if "status_list" in k]) | set(
+                [k for k in sub.keys() if "reasons" in k]
+            )
 
             self.assertEqual(s_exp, s_bind)
 
 
 class LiveTest(object):
-
     def __repr__(self):
         return self.__class__.__name__
 
@@ -735,8 +727,11 @@ class LiveTest(object):
         try:
             subcls.cursor.execute(subcls.qry_create)
         except Exception as e:
-            msg = "%s table creation exception %s. cursor:%s" \
-                % (subcls, e, subcls.cursor)
+            msg = "%s table creation exception %s. cursor:%s" % (
+                subcls,
+                e,
+                subcls.cursor,
+            )
             logger.error(msg)
             raise
 
@@ -750,14 +745,15 @@ class LiveTest(object):
             # unittest.skip("no connection")
             raise unittest.SkipTest("%s.no connection" % (self))
 
-        qry, sub = self.binder.format(self.tqry_ins,
+        qry, sub = self.binder.format(
+            self.tqry_ins,
             dict(
                 sku="drop table orders;",
                 ordernum=ordernum,
                 custid=custid,
                 qty=13,
-                status = BinderHelper.status_shipped
-                )
+                status=BinderHelper.status_shipped,
+            ),
         )
         self.cursor.execute(qry, sub)
 
@@ -796,11 +792,13 @@ class LiveTest(object):
                         # raise NotImplementedError()
                         self._ordernum += 1
                         return self._ordernum
+
                     return locals()
+
                 ordernum = property(**ordernum())
 
             def fetchmax():
-                #making use of the Binder.__call__ shortcut
+                # making use of the Binder.__call__ shortcut
                 qry_max, sub_max = self.binder(self.tqry_max_order, self)
 
                 self.cursor.execute(qry_max, sub_max)
@@ -821,7 +819,13 @@ class LiveTest(object):
             qry_ins, sub = self.binder(self.tqry_ins, incrementer, row)
 
             if self.type_sub == tuple:
-                exp = (row["custid"], old_ordernum + 1, row["sku"], row["qty"], BinderHelper.defaults.status)
+                exp = (
+                    row["custid"],
+                    old_ordernum + 1,
+                    row["sku"],
+                    row["qty"],
+                    BinderHelper.defaults.status,
+                )
                 self.assertEqual(exp, sub)
 
             elif self.type_sub == dict:
@@ -829,10 +833,11 @@ class LiveTest(object):
                     custid=row["custid"],
                     ordernum=old_ordernum + 1,
                     sku=row["sku"],
-                    qty=row["qty"])
+                    qty=row["qty"],
+                )
                 self.assertEqual(exp, sub)
 
-            #insert the new row, fetch it
+            # insert the new row, fetch it
             self.cursor.execute(qry_ins, sub)
             row2 = fetchmax()
 
@@ -842,15 +847,16 @@ class LiveTest(object):
             after.update(row2)
             del after["ordernum"]
 
-            #expecting all data copied except for ordernum incrementation
+            # expecting all data copied except for ordernum incrementation
             self.assertEqual(before, after)
             self.assertEqual(old_ordernum + 1, new_ordernum)
 
         except (Exception,) as e:
-            if cpdb(): pdb.set_trace()
+            if cpdb():
+                pdb.set_trace()
             raise
 
-###################
+    ###################
     def test_0121_list_substit_empty(self):
         """list substitutions need to support empty lists
            this is done via:
@@ -861,7 +867,6 @@ class LiveTest(object):
         try:
 
             testname = "test_0121_list_substit_empty"
-
 
             self.custid = self.li_custid[1]
             self.status_list = []
@@ -875,30 +880,30 @@ class LiveTest(object):
             # pdb.set_trace()
             qry, sub = self.binder.format(tqry, self)
 
-
-
             # qry = qry.replace("()","(null)")
 
-            self.assertTrue("(NULL)" in qry, "an empty list should replaced by `(NULL)`")
-
+            self.assertTrue(
+                "(NULL)" in qry, "an empty list should replaced by `(NULL)`"
+            )
 
             self.cursor.execute(qry, sub)
 
             res = self.cursor.fetchall()
-            self.assertFalse(res, "should not have returned anything with status_list:%s" % (self.status_list))
-
-
+            self.assertFalse(
+                res,
+                "should not have returned anything with status_list:%s"
+                % (self.status_list),
+            )
 
             # raise NotImplementedError(self)
 
-
         except (Exception,) as e:
-            if cpdb(): pdb.set_trace()
+            if cpdb():
+                pdb.set_trace()
             raise
 
+
 ###################
-
-
 
 
 class Sqlite3(LiveTest, BinderHelper, unittest.TestCase):
@@ -960,9 +965,6 @@ class DryRunTest_OracleList(BinderHelper, unittest.TestCase):
     # ordernum = 0
 
 
-
-
-
 class DryRunTest_Postgresql(BinderHelper, unittest.TestCase):
     """test Postgresql handling
        currently not executing sql however, just formatting"""
@@ -988,7 +990,6 @@ class DryRunTest_MSSQL(BinderHelper, unittest.TestCase):
 
 
 class CaseInsensitiveMixin(object):
-
     def test_i03_repeated_insensitive(self):
         """...supports repeated use of the same bind parameter"""
         testname = "test_i03_repeated_insensitive"
@@ -999,14 +1000,15 @@ class CaseInsensitiveMixin(object):
         tqry_ins = """insert into orders(custid, ordernum, sku, qty)
         values (%(custid)s, %(ordernum)s, %(ordernum)s, %(qty)s)"""
 
-        qry, sub = self.binder.format(tqry_ins,
+        qry, sub = self.binder.format(
+            tqry_ins,
             dict(
                 sku="wont_find_this",
                 ORDERNUM=ordernum,
                 CUSTID=custid,
                 QTY=0,
                 status=self.defaults.status,
-                )
+            ),
         )
 
         try:
@@ -1020,7 +1022,8 @@ class CaseInsensitiveMixin(object):
                 self.assertEqual(exp, sub)
 
         except (AssertionError,) as e2:
-            if cpdb(): pdb.set_trace()
+            if cpdb():
+                pdb.set_trace()
             raise
 
         self.check_query(tqry_ins, qry)
@@ -1043,10 +1046,9 @@ class CaseInsensitiveMixin(object):
 
         data = parse_res(self.cursor, [res])[0]
 
-        #column type should be respected
+        # column type should be respected
         self.assertNotEqual(data["ordernum"], data["sku"])
         self.assertEqual(data["ordernum"], int(data["sku"]))
-
 
     def test_i04_repeated_insensitive_varying_case(self):
         """...supports repeated use of the same bind parameter but with varying case"""
@@ -1058,13 +1060,9 @@ class CaseInsensitiveMixin(object):
         tqry_ins = """insert into orders(custid, ordernum, sku, qty)
         values (%(custid)s, %(ordernum)s, %(ORDERNUM)s, %(qty)s)"""
 
-        qry, sub = self.binder.format(tqry_ins,
-            dict(
-                sku="wont_find_this",
-                ORDERNUM=ordernum,
-                CUSTID=custid,
-                QTY=0,
-                )
+        qry, sub = self.binder.format(
+            tqry_ins,
+            dict(sku="wont_find_this", ORDERNUM=ordernum, CUSTID=custid, QTY=0),
         )
 
         if self.type_sub == tuple:
@@ -1095,12 +1093,14 @@ class CaseInsensitiveMixin(object):
 
         data = parse_res(self.cursor, [res])[0]
 
-        #column type should be respected
+        # column type should be respected
         self.assertNotEqual(data["ordernum"], data["sku"])
         self.assertEqual(data["ordernum"], int(data["sku"]))
 
 
-class DryRunTest_MSSQL_CaseInsensitive(BinderHelper, unittest.TestCase, CaseInsensitiveMixin):
+class DryRunTest_MSSQL_CaseInsensitive(
+    BinderHelper, unittest.TestCase, CaseInsensitiveMixin
+):
     """test MS SQL handling
        currently not executing sql however, just formatting"""
 
@@ -1109,14 +1109,13 @@ class DryRunTest_MSSQL_CaseInsensitive(BinderHelper, unittest.TestCase, CaseInse
     case_insensitive = True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
-    #interactive debug
+    # interactive debug
     debug_flag = "--pdb"
     if debug_flag in sys.argv:
         sys.argv.remove(debug_flag)
         cpdb.enabled = True
-
 
     sys.exit(unittest.main())

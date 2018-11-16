@@ -89,7 +89,6 @@ class Binder(object):
             return [key, key.upper()]
         return [key]
 
-
     _key_expand = _case_sensitive
 
     def _get_from_args(self, key_in):
@@ -104,14 +103,14 @@ class Binder(object):
                     return got
                 except (KeyError):
                     try:
-                        #try getattr
+                        # try getattr
                         got = getattr(arg, key)
                         return got
                     except AttributeError:
                         continue
 
                 except (AttributeError, TypeError):
-                    #no __getitem__, try getattr
+                    # no __getitem__, try getattr
                     try:
                         got = getattr(arg, key)
                         return got
@@ -146,8 +145,10 @@ class Binder(object):
                   but expecting one of %s.
                   See
                   https://www.python.org/dev/peps/pep-0249/#paramstyle
-                  for details""" % \
-                  (paramstyle, "/".join(list(cls._di_paramstyle.keys())))
+                  for details""" % (
+                paramstyle,
+                "/".join(list(cls._di_paramstyle.keys())),
+            )
             raise ValueError(msg)
         except NotImplementedError:
             msg = "%s is not implemented yet" % (paramstyle)
@@ -155,10 +156,10 @@ class Binder(object):
 
     _di_paramstyle = {}
 
-    #the regular expression pattern that looks for list type binds
+    # the regular expression pattern that looks for list type binds
     re_pattern_listsubstition = re.compile("%\([a-zZ-Z0-9_]+\)l")
 
-    #leading '__' variable name makes name clashes more unlikely
+    # leading '__' variable name makes name clashes more unlikely
     T_LIST_KEYNAME = "__%s_%03d"
 
     # def _pre_process(self):
@@ -183,16 +184,16 @@ class Binder(object):
 
             if not isinstance(got, (list, set)):
                 raise ValueError(
-                    "list substitutions require an iterable parameter: `%s` was of type `%s`" 
+                    "list substitutions require an iterable parameter: `%s` was of type `%s`"
                     % (key, type(got))
-                    )
+                )
                 #
                 # self.tqry = self.tqry.replace(hit, hit[:-1] + "s")
             else:
 
                 li = []
                 if not got:
-                    #empty list or set
+                    # empty list or set
                     self.tqry = self.tqry.replace(hit, "NULL")
                     continue
 
@@ -202,8 +203,8 @@ class Binder(object):
                     di_list_sub[ikeyname] = val
                     li.append(ikeyname_sub)
 
-                #replace the original bind %(xxx)l with
-                #%(__xxx_000)s, %(__xxx_001)s, ...
+                # replace the original bind %(xxx)l with
+                # %(__xxx_000)s, %(__xxx_001)s, ...
                 repval = ", ".join(li)
                 self.tqry = self.tqry.replace(hit, repval)
 
@@ -246,9 +247,9 @@ class Binder_pyformat(Binder):
         except (Exception,) as e:
             raise
 
-        #Postgresql query format stays as %(foo)s
-        #so we just return the original query
-        #(which _pre_process may have altered)
+        # Postgresql query format stays as %(foo)s
+        # so we just return the original query
+        # (which _pre_process may have altered)
         return self.tqry, self.sub
 
     __call__ = format
@@ -261,7 +262,9 @@ class Binder_pyformat(Binder):
         self.sub[key] = got
         return None
 
+
 PARAMSTYLE_QMARK = PARAMSTYLE_SQLITE = PARAMSTYLE_SQLSERVER = "qmark"
+
 
 class BinderQmark(Binder):
     """ supports:  sqlite3, SQL Server
@@ -300,7 +303,6 @@ class BinderQmark(Binder):
             raise
 
         return qry, tuple(self.sub)
-
 
     __call__ = format
 
@@ -385,8 +387,8 @@ class BinderNamed(Binder):
         format :foo
         """
 
-        #already seen so already in the substition dict
-        #replace the query's %(foo)s with :foo
+        # already seen so already in the substition dict
+        # replace the query's %(foo)s with :foo
         if key in self.sub:
             return self.t_qry_replace % (key)
 
@@ -406,6 +408,7 @@ class BinderNamed(Binder):
     pyformat    Python extended format codes, e.g. ...WHERE name=%(name)s
     """
 
+
 ExperimentalBinderNamed = BinderNamed
 
 
@@ -417,8 +420,9 @@ class Binder_NotImplementedError(Binder):
     def __init__(self, *args, **kwds):
         raise NotImplementedError()
 
-#This is what decides how the Binder
-#will process incoming template substitutions
+
+# This is what decides how the Binder
+# will process incoming template substitutions
 Binder._di_paramstyle["pyformat"] = Binder_pyformat
 Binder._di_paramstyle["named"] = BinderNamed
 Binder._di_paramstyle[PARAMSTYLE_QMARK] = BinderQmark
@@ -426,5 +430,5 @@ Binder._di_paramstyle["format"] = BinderFormat
 
 Binder._di_paramstyle["experimentalnamed"] = ExperimentalBinderNamed
 
-#and these are not done yet
+# and these are not done yet
 Binder._di_paramstyle["numeric"] = Binder_NotImplementedError

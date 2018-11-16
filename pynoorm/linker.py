@@ -10,9 +10,12 @@ from .utils import SlotProxy
 import pdb
 from traceback import print_exc as xp
 
+
 def cpdb():
     """do-nothing debugger test"""
     return cpdb.enabled
+
+
 cpdb.enabled = False
 ########### debugging aids ##################
 
@@ -26,9 +29,9 @@ class LinkResultHelper(object):
            Assign all the Linker.link parameters to the instance's __dict__, then
            we go back to standard self"""
 
-        #`self` in the kwds refers to the Linker instance
+        # `self` in the kwds refers to the Linker instance
         kwds["linker"] = kwds.pop("self")
-        #store everything that was passed as parameters to `link`.
+        # store everything that was passed as parameters to `link`.
         _this.__dict__.update(**kwds)
 
         self = _this
@@ -45,15 +48,16 @@ class LinkResultHelper(object):
         try:
             li = self.right_orphans
             return self._initialize(li, self.attrname_on_right, self.type_on_right)
-        except (Exception,) as e:    #pragma: no cover
-            if cpdb(): pdb.set_trace()
+        except (Exception,) as e:  # pragma: no cover
+            if cpdb():
+                pdb.set_trace()
             raise
 
     def _initialize(self, li, attrname, type_):
         """initialize objects that didn't get linked"""
-        if not li:  #pragma: no cover
+        if not li:  # pragma: no cover
             return self
-            
+
         linker = self.linker
         getter = self.linker._get_getter(li[0], attrname)
         _empty_setter = None
@@ -61,7 +65,9 @@ class LinkResultHelper(object):
             try:
                 v = getter(obj)
             except (AttributeError, KeyError):
-                _empty_setter = _empty_setter or linker._get_empty_setter(obj, attrname, type_)
+                _empty_setter = _empty_setter or linker._get_empty_setter(
+                    obj, attrname, type_
+                )
                 _empty_setter(obj, attrname, type_)
         return self
 
@@ -70,8 +76,9 @@ class LinkResultHelper(object):
         try:
             li = list(self.left.values())
             return self._initialize(li, self.attrname_on_left, self.type_on_left)
-        except (Exception,) as e: #pragma: no cover
-            if cpdb(): pdb.set_trace()
+        except (Exception,) as e:  # pragma: no cover
+            if cpdb():
+                pdb.set_trace()
             raise
 
 
@@ -86,7 +93,6 @@ class Linker(object):
 
     TYPE_SCALAR = None
 
-
     def __init__(self, key_left):
         """key_left is either a string or tuple of strings
            stating which attributes/keys on future objects
@@ -95,10 +101,8 @@ class Linker(object):
         """
         self.key_left = key_left
 
-
     def __repr__(self):
-        return "% on fields %s" % (self.__class__.__name__, self.key_left)
-
+        return "%s on fields: %s" % (self.__class__.__name__, self.key_left)
 
     def _get_getter(self, obj, key):
         """returns a getter function appropriate for the getitem/getattr support in `obj`"""
@@ -109,17 +113,24 @@ class Linker(object):
                 elif isinstance(key, collections.Sequence):
                     return itemgetter(*key)
                 else:
-                    raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
+                    raise TypeError(
+                        "expecting a string or tuple of strings as key.  got:%s[%s]"
+                        % (str(key), type(key))
+                    )
             else:
                 if isinstance(key, string_types):
                     return attrgetter(key)
                 elif isinstance(key, collections.Sequence):
                     return attrgetter(*key)
                 else:
-                    raise TypeError("expecting a string or tuple of strings as key.  got:%s[%s]" % (str(key),type(key)) )
+                    raise TypeError(
+                        "expecting a string or tuple of strings as key.  got:%s[%s]"
+                        % (str(key), type(key))
+                    )
 
-        except (Exception,) as e: #pragma: no cover
-            if cpdb(): pdb.set_trace()
+        except (Exception,) as e:  # pragma: no cover
+            if cpdb():
+                pdb.set_trace()
             raise
 
     def dict_from_list(self, li):
@@ -141,24 +152,28 @@ class Linker(object):
             get_key = get_key or self._get_getter(o_left, key_left)
             try:
                 keyval = get_key(o_left)
-                #NOTE:  at this point, if we used a list instead of a simple assignment could we do m-n?
+                # NOTE:  at this point, if we used a list instead of a simple assignment could we do m-n?
                 di_left[keyval] = o_left
-            except (Exception,) as e:    #pragma: no cover
-                if cpdb(): pdb.set_trace()
+            except (Exception,) as e:  # pragma: no cover
+                if cpdb():
+                    pdb.set_trace()
                 raise
 
         return di_left
 
-
-    def link(self, left, right, attrname_on_left
-        ,setter_left=None
-        ,type_on_left=list
-        ,dictkey_attrname_left=None
-        ,key_right=None
-        ,setter_right=None
-        ,attrname_on_right=None
-        ,type_on_right=None
-        ):
+    def link(
+        self,
+        left,
+        right,
+        attrname_on_left,
+        setter_left=None,
+        type_on_left=list,
+        dictkey_attrname_left=None,
+        key_right=None,
+        setter_right=None,
+        attrname_on_right=None,
+        type_on_right=None,
+    ):
         """
         :param left: a dictionary of objects or dictionaries which will be linked to right-side objects
         :param right: a list(iterator?) of objects or dictionaries.  you can also pass in a dictionary, its values will be used in that case
@@ -186,14 +201,16 @@ class Linker(object):
 
             try:
                 assert isinstance(attrname_on_left, string_types)
-            except (AssertionError,) as e:  #pragma: no cover
-                raise TypeError("attrname_on_left needs to be a valid python variable name")
+            except (AssertionError,) as e:  # pragma: no cover
+                raise TypeError(
+                    "attrname_on_left needs to be a valid python variable name"
+                )
 
             key_left = self.key_left
             key_right = key_right or key_left
 
-            #grab some sample objects from left and right
-            #and use the samples to figure out getters and setters
+            # grab some sample objects from left and right
+            # and use the samples to figure out getters and setters
             try:
                 sample_left = next(iter(left.values()))
             except (StopIteration,) as e:
@@ -209,47 +226,60 @@ class Linker(object):
 
             get_key = self._get_getter(sample_right, key_right)
             setter_left = setter_left or self._get_setter(
-                sample_left, attrname_on_left
-                , type_on_left, dictkey_attrname_left, sample_right)
+                sample_left,
+                attrname_on_left,
+                type_on_left,
+                dictkey_attrname_left,
+                sample_right,
+            )
 
             if attrname_on_right:
                 setter_right = setter_right or self._get_setter(
-                    sample_right, attrname_on_right, type_on_right)
+                    sample_right, attrname_on_right, type_on_right
+                )
             else:
                 setter_right = None
 
-            #do we need to set left-only? or left and right?
+            # do we need to set left-only? or left and right?
             if setter_right:
                 prepped = self._preppedlinkleftright
             else:
                 prepped = self._preppedlinkleft
 
-            #finally, call the actual link, on the sample, then the rest
-            for right_ in [[sample_right],it_right]:
+            # finally, call the actual link, on the sample, then the rest
+            for right_ in [[sample_right], it_right]:
 
-                prepped(left=left, right=right_
-                    ,attrname_on_left=attrname_on_left
-                    ,setter_left=setter_left
-                    ,key_left=key_left
-                    ,key_right=key_right
-                    ,setter_right=setter_right
-                    ,attrname_on_right=attrname_on_right
-                    ,get_key=get_key)
+                prepped(
+                    left=left,
+                    right=right_,
+                    attrname_on_left=attrname_on_left,
+                    setter_left=setter_left,
+                    key_left=key_left,
+                    key_right=key_right,
+                    setter_right=setter_right,
+                    attrname_on_right=attrname_on_right,
+                    get_key=get_key,
+                )
 
-        except (Exception,) as e:    #pragma: no cover
-            if cpdb(): pdb.set_trace()
+        except (Exception,) as e:  # pragma: no cover
+            if cpdb():
+                pdb.set_trace()
             raise
         else:
             return self.helper
 
-    def _preppedlinkleft(self, left, right, attrname_on_left
-        ,setter_left
-        ,key_left
-        ,key_right
-        ,setter_right
-        ,attrname_on_right
-        ,get_key
-        ):
+    def _preppedlinkleft(
+        self,
+        left,
+        right,
+        attrname_on_left,
+        setter_left,
+        key_left,
+        key_right,
+        setter_right,
+        attrname_on_right,
+        get_key,
+    ):
         """called from link, with all the getters/setters pre-discovered
            and knows that it won't be setting anything on the right side.
            however the signature is the same as `_preppedlinkleftright`, to unify and simplify
@@ -265,15 +295,18 @@ class Linker(object):
                 continue
             setter_left(o_left, attrname_on_left, o_right)
 
-
-    def _preppedlinkleftright(self, left, right, attrname_on_left
-        ,setter_left
-        ,key_left
-        ,key_right
-        ,setter_right
-        ,attrname_on_right
-        ,get_key
-        ):
+    def _preppedlinkleftright(
+        self,
+        left,
+        right,
+        attrname_on_left,
+        setter_left,
+        key_left,
+        key_right,
+        setter_right,
+        attrname_on_right,
+        get_key,
+    ):
         """see `_preppedlinkleft`, but this will set attributes on the right
         """
 
@@ -319,13 +352,16 @@ class Linker(object):
                 else:
                     raise NotImplementedError()
 
-        except (Exception,) as e:  #pragma: no cover
-            if cpdb(): pdb.set_trace()
+        except (Exception,) as e:  # pragma: no cover
+            if cpdb():
+                pdb.set_trace()
             raise
 
     supported_target_types = [list, None]
 
-    def _get_setter(self, obj, attrname_on_tgt, type_on_tgt, dictkey_attrname=None, o_src=None):
+    def _get_setter(
+        self, obj, attrname_on_tgt, type_on_tgt, dictkey_attrname=None, o_src=None
+    ):
         """determines the appropriate function to set values
            - mapping types will privilege setitem
            - other instance will use setattr
@@ -349,8 +385,12 @@ class Linker(object):
                 elif type_on_tgt is None:
                     return setitem
                 else:
-                    raise TypeError("unsupported target type:%s.  Supported are: %s" % (type_on_tgt, self.supported_target_types))
+                    raise TypeError(
+                        "unsupported target type:%s.  Supported are: %s"
+                        % (type_on_tgt, self.supported_target_types)
+                    )
             else:
+
                 def append(tgt, attrname, value):
                     li = getattr(tgt, attrname, None)
                     if li is None:
@@ -378,12 +418,12 @@ class Linker(object):
                 elif type_on_tgt is None:
                     return setattr
                 else:
-                    raise TypeError("unsupported target type:%s.  Supported are: %s" % (type_on_tgt, self.supported_target_types))
+                    raise TypeError(
+                        "unsupported target type:%s.  Supported are: %s"
+                        % (type_on_tgt, self.supported_target_types)
+                    )
 
-        except (Exception,) as e:    #pragma: no cover
-            if cpdb(): pdb.set_trace()
+        except (Exception,) as e:  # pragma: no cover
+            if cpdb():
+                pdb.set_trace()
             raise
-
-
-
-

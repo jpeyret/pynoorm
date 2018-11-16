@@ -9,12 +9,10 @@ except (NameError,) as e:
 ###################################################################
 
 
-
 from pynoorm.binder import Binder_pyformat
 
 
 class PGDebugBinder(Binder_pyformat):
-
     def __getitem__(self, key):
         if key in self.sub:
             return None
@@ -22,7 +20,7 @@ class PGDebugBinder(Binder_pyformat):
         got = self._get_from_args(key)
 
         if isinstance(got, basestring):
-        	got = "'%s'" % (got)
+            got = "'%s'" % (got)
         elif got is None:
             got = "null"
         #!!!todo!!!p4 - handle date/datetimes...
@@ -38,6 +36,3 @@ class PGDebugBinder(Binder_pyformat):
         inst = cls()
         dtqry, dsub = inst.format(tqry, *args)
         return "insecure:\n" * flaginsecure + dtqry % dsub
-
-
-

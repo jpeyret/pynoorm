@@ -1,4 +1,3 @@
-
 class SlotProxy(object):
     """allow assignment to instances originally using __slots__"""
 
@@ -17,6 +16,7 @@ class SlotProxy(object):
         except AttributeError:
             raise
 
+
 def rename_bindnames(tqry, li_adjust):
     """use this to alter the query template to match expected attribute names in bind objects/dictionaries
 
@@ -32,4 +32,3 @@ def rename_bindnames(tqry, li_adjust):
         to_ = "%(" + attrname + ")s"
         tqry = tqry.replace(from_, to_)
     return tqry
-
