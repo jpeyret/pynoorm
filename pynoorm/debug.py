@@ -13,6 +13,34 @@ from pynoorm.binder import Binder_pyformat
 
 
 class PGDebugBinder(Binder_pyformat):
+
+    name_debug_dict = "di_query_debug"
+
+    def __init__(self, name_debug_dict=None, multiple=False):
+
+        if name_debug_dict:
+            self.name_debug_dict = name_debug_dict
+
+        self.multiple = multiple
+
+
+    def track(self, target, query, queryname, multiple=False):
+        
+        try:
+            di_qry = getattr(target, self.name_debug_dict, {})
+
+            multiple = multiple or self.multiple
+
+            if multiple:
+                li = di_qry.setdefault(queryname, [])
+                li.append(query)
+            else:
+                di_qry[queryname] = query
+
+        except (Exception,) as e:
+            raise
+
+
     def __getitem__(self, key):
         if key in self.sub:
             return None
