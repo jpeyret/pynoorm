@@ -157,7 +157,7 @@ class Binder(object):
     _di_paramstyle = {}
 
     # the regular expression pattern that looks for list type binds
-    re_pattern_listsubstition = re.compile("%\([a-zZ-Z0-9_]+\)l")
+    re_pattern_listsubstition = re.compile("%\([a-zA-Z0-9_]+\)l")
 
     # leading '__' variable name makes name clashes more unlikely
     T_LIST_KEYNAME = "__%s_%03d"

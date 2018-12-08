@@ -705,6 +705,62 @@ class BinderHelper(object):
 
             self.assertEqual(s_exp, s_bind)
 
+    def test_013_list_substit_uppercase(self):
+        """...check list substitutions"""
+        testname = str(self)
+
+        # self.assertEqual(
+        #     self.binder.__class__.__name__,
+        #     "ExperimentalBinderNamed")
+
+        custid = self.li_custid[0]
+        self.custid = self.li_custid[1]
+
+        tqry = """select *
+                  from orders
+                  where custid = %(custid)s and status in (%(STATUS_LIST)l)"""
+
+        # where to count in the sequence-based subs
+        offset_status_list = 1
+
+        ABC = "ABC"
+
+        li = [ABC, "XYZ"]
+        # we should expect custid to come from self.li_custid[0]
+        try:
+            qry, sub = self.binder.format(
+                tqry, dict(custid=custid, STATUS_LIST=li), self
+            )
+        except (Exception,) as e:
+            raise
+
+        if self.type_sub == dict:
+            self.assertTrue("__STATUS_LIST_001" in qry)
+            self.assertEqual(sub.get("__STATUS_LIST_000"), "ABC")
+
+        s_exp = set()
+
+        self.assertEqual(1 + len(li), len(sub))
+
+        for ix, value in enumerate(li):
+            keyname = "__STATUS_LIST_%03d" % ix
+            try:
+                if self.type_sub == dict:
+                    self.assertEqual(value, sub.get(keyname))
+                if self.type_sub == tuple:
+                    self.assertEqual(value, sub[ix + offset_status_list])
+            except AssertionError:
+                print("keyname:%s:" % (keyname))
+                print("sub:%s" % str(sub))
+                raise
+
+            s_exp.add(keyname)
+
+        if self.type_sub == dict:
+            s_bind = set([k for k in sub.keys() if "STATUS_LIST" in k])
+            self.assertEqual(s_exp, s_bind)
+
+
 
 class LiveTest(object):
     def __repr__(self):
@@ -879,8 +935,6 @@ class LiveTest(object):
 
             # pdb.set_trace()
             qry, sub = self.binder.format(tqry, self)
-
-            # qry = qry.replace("()","(null)")
 
             self.assertTrue(
                 "(NULL)" in qry, "an empty list should replaced by `(NULL)`"
