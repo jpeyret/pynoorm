@@ -34,3 +34,10 @@ History
 ------------------
 
 * adjusted for Python 3 
+
+0.4.2 (2019-01-19)
+------------------
+
+* ran Black for code formatting
+* updated PyYaml to 4.2b4 to fix security vulnerability
+
