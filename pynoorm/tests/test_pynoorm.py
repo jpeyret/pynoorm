@@ -562,15 +562,15 @@ class BinderHelper(object):
             raise
 
         if self.type_sub == dict:
-            self.assertTrue("__status_list_001" in qry)
-            self.assertEqual(sub.get("__status_list_000"), "ABC")
+            self.assertTrue("status_list_001__" in qry)
+            self.assertEqual(sub.get("status_list_000__"), "ABC")
 
         s_exp = set()
 
         self.assertEqual(1 + len(li), len(sub))
 
         for ix, value in enumerate(li):
-            keyname = "__status_list_%03d" % ix
+            keyname = "status_list_%03d__" % ix
             try:
                 if self.type_sub == dict:
                     self.assertEqual(value, sub.get(keyname))
@@ -661,15 +661,15 @@ class BinderHelper(object):
         s_exp = set()
 
         if self.type_sub == dict:
-            self.assertTrue("__status_list_001" in qry)
-            self.assertEqual(sub.get("__status_list_000"), "ABC")
-            self.assertTrue("__reasons_001" in qry)
-            self.assertEqual(sub.get("__reasons_000"), NOTAVAIL)
+            self.assertTrue("status_list_001__" in qry)
+            self.assertEqual(sub.get("status_list_000__"), "ABC")
+            self.assertTrue("reasons_001__" in qry)
+            self.assertEqual(sub.get("reasons_000__"), NOTAVAIL)
 
         s_exp = set()
 
         for ix, value in enumerate(status_list):
-            keyname = "__status_list_%03d" % ix
+            keyname = "status_list_%03d__" % ix
             try:
                 if self.type_sub == dict:
                     self.assertEqual(value, sub.get(keyname))
@@ -684,7 +684,7 @@ class BinderHelper(object):
             s_exp.add(keyname)
 
         for ix, value in enumerate(self.reasons):
-            keyname = "__reasons_%03d" % ix
+            keyname = "reasons_%03d__" % ix
             try:
                 if self.type_sub == dict:
                     self.assertEqual(value, sub.get(keyname))
@@ -735,15 +735,15 @@ class BinderHelper(object):
             raise
 
         if self.type_sub == dict:
-            self.assertTrue("__STATUS_LIST_001" in qry)
-            self.assertEqual(sub.get("__STATUS_LIST_000"), "ABC")
+            self.assertTrue("STATUS_LIST_001__" in qry)
+            self.assertEqual(sub.get("STATUS_LIST_000__"), "ABC")
 
         s_exp = set()
 
         self.assertEqual(1 + len(li), len(sub))
 
         for ix, value in enumerate(li):
-            keyname = "__STATUS_LIST_%03d" % ix
+            keyname = "STATUS_LIST_%03d__" % ix
             try:
                 if self.type_sub == dict:
                     self.assertEqual(value, sub.get(keyname))

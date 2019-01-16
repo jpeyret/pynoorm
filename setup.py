@@ -66,7 +66,7 @@ with open(os.path.join(os.path.dirname(__file__), "README.rst")) as r_file:
 
 setup(
     name="pynoorm",
-    version="0.4.3",
+    version="0.4.4",
     description=description,
     long_description=readme + "\n\n" + history,
     author="JL Peyret",

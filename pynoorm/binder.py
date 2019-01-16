@@ -160,7 +160,7 @@ class Binder(object):
     re_pattern_listsubstition = re.compile("%\([a-zA-Z0-9_]+\)l")
 
     # leading '__' variable name makes name clashes more unlikely
-    T_LIST_KEYNAME = "__%s_%03d"
+    T_LIST_KEYNAME = "%s_%03d__"
 
     # def _pre_process(self):
     #     """do nothing for now - intended to support list substitutions"""

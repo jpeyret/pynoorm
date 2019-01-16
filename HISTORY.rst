@@ -35,9 +35,20 @@ History
 
 * adjusted for Python 3 
 
-0.4.2 (2019-01-19)
+0.4.2 (2019-01-10)
 ------------------
 
 * ran Black for code formatting
 * updated PyYaml to 4.2b4 to fix security vulnerability
 
+
+0.4.3 (2019-01-10)
+------------------
+
+* removed Python 3.7 from tox since that Python version is not supported yet by tox.
+
+
+0.4.4 (2019-01-15)
+------------------
+
+* adjusted list binding variable names from `__xxx_000` to `xxx_000__` because leading underscore are invalid under Oracle.
