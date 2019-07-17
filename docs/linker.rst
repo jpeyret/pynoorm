@@ -290,9 +290,7 @@ You can also change incoming right-side objects (I don't think d3 needs the `par
     lookup = d3linker.dict_from_list(rows)
 
     def custom_setter_for_d3(o_left: any, attrname_on_left: str, o_right: any) -> None:
-        children = o_left.get("children")
-        if children is None:
-            o_left["children"] = children = []
+        children = o_left.setdefault("children",[])
         del o_right["parent"]  # let's assume d3.js doesn't need parent
         children.append(o_right)
 
