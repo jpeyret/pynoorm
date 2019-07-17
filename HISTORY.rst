@@ -52,3 +52,10 @@ History
 ------------------
 
 * adjusted list binding variable names from `__xxx_000` to `xxx_000__` because leading underscore are invalid under Oracle.
+  
+0.1.0 (2019-07-15)
+------------------
+
+* added the D3.js Tree Linker example.
+* Code is stable and hasn't had fixes or API changes.
+
