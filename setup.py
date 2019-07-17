@@ -66,7 +66,7 @@ with open(os.path.join(os.path.dirname(__file__), "README.rst")) as r_file:
 
 setup(
     name="pynoorm",
-    version="1.0.1",
+    version="1.0.2",
     description=description,
     long_description=readme + "\n\n" + history,
     author="JL Peyret",
@@ -80,7 +80,7 @@ setup(
     zip_safe=False,
     keywords="sql database multiplatform",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
