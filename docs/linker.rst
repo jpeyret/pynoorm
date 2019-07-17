@@ -271,8 +271,68 @@ Customer #3 now has an empty `orders` list and orders for customer #1 have custo
 	{ 'custid': 'custid_1', 'customer': None, 'order_id': 1001, 'xref': 1}
 
 
+Transforming row data into the format expected by a D3.js Tree ::
+---------------------------------------------------------------------------------------
+
+This will mimic the nested data for the D3 Tree example at http://bl.ocks.org/d3noob/8375092
+
+You provide your own setter, so it's a bit faster, and you could also format incoming right-side objects (I don't think d3 needs the `parent` attribute, only `name` and `children`) :: 
+
+    rows = [
+        {"name": "Top Level", "parent": None},
+        {"name": "Level 2: A", "parent": "Top Level"},
+        {"name": "Son of A", "parent": "Level 2: A"},
+        {"name": "Daughter of A", "parent": "Level 2: A"},
+        {"name": "Level 2: B", "parent": "Top Level"},
+    ]
+
+    d3linker = Linker("name")
+    lookup = d3linker.dict_from_list(rows)
+
+    def custom_setter_for_d3(o_left: any, attrname_on_left: str, o_right: any) -> None:
+        children = o_left.get("children")
+        if children is None:
+            o_left["children"] = children = []
+        del o_right["parent"]  # let's assume d3.js doesn't need parent
+        children.append(o_right)
+
+    d3linker.link(
+        lookup,
+        rows,
+        attrname_on_left="children",
+        setter_left=custom_setter_for_d3,
+        key_right="parent",
+    )
+
+    #the d3 structure you want is in the first row, via nested children
+    print(json.dumps(rows[0], indent=4))
+
+
+which gives: ::
+
+    {
+        "name": "Top Level",
+        "parent": null,
+        "children": [
+            {
+                "name": "Level 2: A",
+                "children": [
+                    {
+                        "name": "Son of A"
+                    },
+                    {
+                        "name": "Daughter of A"
+                    }
+                ]
+            },
+            {
+                "name": "Level 2: B"
+            }
+        ]
+    }
+
 Slots-based objects
-------------------
+-------------------
 
 Some database libraries, like SQL Alchemy, return objects that use `__slots__` to minimize memory usage.  Objects with slots can't accept attribute assignments for attributes that haven't been defined in advance.
 
@@ -289,9 +349,9 @@ Performance isn't a feature, but it's good to keep track of it.
 
 On an early 2011 Mac Book Pro, 2.2Ghz, 16GB RAM and 512GB SSD, the processing time scales linearly, at least up 100k customers: ::
 
-	1000 customers and 8964 orders linked in 0.0100049972534 seconds
-	10000 customers and 89964 orders linked in 0.110321998596 seconds
-	100000 customers and 899964 orders linked in 1.63230895996 seconds
+	1000 customers and 8964 orders linked in 0.009980916976928711 seconds
+	10000 customers and 89964 orders linked in 0.1071767807006836 seconds
+	100000 customers and 899964 orders linked in 1.2997241020202637 seconds
 
 API
 ===

@@ -147,6 +147,8 @@ class Linker(object):
             li2 = li.values()
         li2 = li2 or li
 
+        # !!!TODO!!!" 46.pynoorm/007.get_key_sampling"
+        # sample from li2 rather than get_key or on each row
         get_key = None
         for o_left in li2:
             get_key = get_key or self._get_getter(o_left, key_left)
