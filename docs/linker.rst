@@ -276,7 +276,7 @@ Transforming row data into the format expected by a D3.js Tree ::
 
 This will mimic the nested data for the D3 Tree example at http://bl.ocks.org/d3noob/8375092
 
-You provide your own setter, so it's a bit faster, and you could also format incoming right-side objects (I don't think d3 needs the `parent` attribute, only `name` and `children`) :: 
+You can also change incoming right-side objects (I don't think d3 needs the `parent` attribute, only `name` and `children`) :: 
 
     rows = [
         {"name": "Top Level", "parent": None},
